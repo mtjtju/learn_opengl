@@ -1,0 +1,4 @@
+﻿  main.cpp
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(183,34): warning C4305: 'argument': truncation from 'double' to 'GLfloat'
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(197,19): warning C4244: 'initializing': conversion from 'double' to 'float', possible loss of data
+  ACCAT_OGL.vcxproj -> D:\Miao\Study\code\learn_opengl\ACCAT_OGL\x64\Debug\ACCAT_OGL.exe
