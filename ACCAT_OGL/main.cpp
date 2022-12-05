@@ -1,8 +1,13 @@
 #include <iostream>
 #include <glad/glad.h>
 #include <glfw3.h>
+#include <glm/glm.hpp>
+#include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
+#define STB_IMAGE_IMPLEMENTATION
+#include "stb_image.h"
 
 using std::cout;
 using std::endl;
@@ -24,8 +29,34 @@ Rasterization Stage 光栅化
 	in: 图元
 	out:裁剪后的片元（渲染一个像素所需的数据）
 Alpha test, blending
-*/
 
+texture太小---texture magnify问题---双线性插值
+texture太大---texture minify问题----mipmap, 三线性插值
+
+texture unit 纹理单元
+	相当于指向具体纹理数据的指针，ogl有16个以上纹理单元，一个采样器可以指向其中一个
+
+纹理
+	练习：
+		修改片段着色器，仅让笑脸图案朝另一个方向看，参考解答
+			in fshader, u = 1.0 - u
+		尝试用不同的纹理环绕方式，设定一个从0.0f到2.0f范围内的（而不是原来的0.0f到1.0f）纹理坐标。试试看能不能在箱子的角落放置4个笑脸：参考解答，结果。记得一定要试试其它的环绕方式。
+			in vertex data, double uv
+		尝试在矩形上只显示纹理图像的中间一部分，修改纹理坐标，达到能看见单个的像素的效果。尝试使用GL_NEAREST的纹理过滤方式让像素显示得更清晰：参考解答
+			in vertex data, uv *= 0.05
+		使用一个uniform变量作为mix函数的第三个参数来改变两个纹理可见度，使用上和下键来改变箱子或笑脸的可见度：参考解答。
+			GLFW_PRESS检测按键事件，步长设小一点就不会突变
+
+GLSL与线性代数
+	两个向量相乘是对应元素相乘
+opengl glm库与线性代数
+	向量、矩阵和数字的+-*除，都作用于每个元素
+	glm::vec4 vec(1, 0, 0, 1);
+	glm::mat4 trans; // identity matrix
+	trans = glm::translate(trans, glm::vec3(1, 1, 0));
+	vec = trans * vec;
+	cout << vec.x << ' ' << vec.y << ' ' << vec.z << endl;
+*/
 
 /*
 Shader
@@ -106,47 +137,94 @@ int main() {
 	// 最终的屏幕空间
 	glViewport(0, 0, 800, 600);
 
-	Shader shaderPgYellow("shaders/simple_vshader.vert", "shaders/fshader_Yellow.frag");
-	Shader shaderPgBlue("shaders/simple_vshader.vert", "shaders/fshader_Blue.frag");
+	Shader shader_texture("shaders/vshader_texture.vert", "shaders/fshader_texture.frag");
 
 	// 数据传输------------------------------------------------------------
 	// 模型输入
+	float uvscale = 1.0;
 	float vertices[] = {
-		-.5,-.5,0,
-		.5, -.5, 0,
-		.5, .5, 0,
-		-.5,.5,0
+		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   uvscale, uvscale,   // 右上
+		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   uvscale, 0.0f,   // 右下
+		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
+		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, uvscale    // 左上
 	};
-	float vertices_with_clr[] = {
-		-.5, -.5, 0,  0, 1, 0,
-		.5, -.5, 0,   1, 0, 0,
-		-.5, .5, 0,    0, 0, 1
-	};
-	unsigned int indices_clr[] = { 0, 1, 2 };
-	unsigned int indices0[] = { 0, 1, 3 };
-	unsigned int indices1[] = { 1, 2, 3 };
+	unsigned int indices[] = { 0, 1, 2, 0, 2, 3 };
+
+	// texture ----------------------------------
+	int width, height, nrChannels;
+	stbi_set_flip_vertically_on_load(true);
+	unsigned char* data = stbi_load("../textures/container.jpg", &width, &height, &nrChannels, 0);
+	unsigned int texture;
+	glGenTextures(1, &texture);
+	glActiveTexture(GL_TEXTURE0);
+	glBindTexture(GL_TEXTURE_2D, texture);
+
+	// 环绕、过滤方式
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // s, t是两个轴
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+
+	// 数据传到纹理对象
+	if (data)
+	{
+		//           type,mipmap level,form,   w,    h,     0,   save rgb as byte(char), data
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		cout << "Failed to load texture" << endl;
+	}
+	stbi_image_free(data);
+
+	int width_face, height_face, nrChannels_face;
+	unsigned int texture_face;
+	unsigned char* face = stbi_load("../textures/awesomeface.png", &width_face, &height_face, &nrChannels_face, 0);
+	glGenTextures(1, &texture_face);
+	glActiveTexture(GL_TEXTURE1);
+	glBindTexture(GL_TEXTURE_2D, texture_face);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // s, t是两个轴
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+	if (face)
+	{
+		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_face, height_face, 0, GL_RGBA, GL_UNSIGNED_BYTE, face);
+		glGenerateMipmap(GL_TEXTURE_2D);
+	}
+	else
+	{
+		cout << "Failed to load texture" << endl;
+	}
+	stbi_image_free(face);
+
+	shader_texture.use();
+	glUniform1i(glGetUniformLocation(shader_texture.ID, "ourTexture"), 0);
+	glUniform1i(glGetUniformLocation(shader_texture.ID, "faceTexture"), 1);
 
 	// VAO 负责解释VBO中的顶点是啥
 	//		储存了EBO，属性指针，顶点属性disable\enalbe调用，可以通过指针找到VBO中的数据
 	//		每次绑定它相当于重新绑定EBO并设置了以上的值
 	// VBO 负责在显存中储存顶点的对象
-	unsigned int VAOs[2], VBOs[2], EBOs[2];
+	unsigned int VAO, VBO, EBO;
 
 	// 类似于声明一个指针 my_ptr
-	glGenVertexArrays(2, VAOs);
-	glGenBuffers(2, VBOs);
-	glGenBuffers(2, EBOs);
+	glGenVertexArrays(1, &VAO);
+	glGenBuffers(1, &VBO);
+	glGenBuffers(1, &EBO);
 
 	// 类似于:opengl.arry_buffer = my_ptr
 	// 所以此后调用array_buffer用的都是my_ptr
-	glBindVertexArray(VAOs[0]); // 先调用，它会保存后面的EBO和属性指针的设置
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[0]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[0]);
+	glBindVertexArray(VAO); // 先调用，它会保存后面的EBO和属性指针的设置
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
+	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	// 开辟内存空间并把数据存入对象中
 	// gl_static_draw表示数据基本不会变
-	glBufferData(GL_ARRAY_BUFFER, sizeof vertices_with_clr, vertices_with_clr, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices_clr, indices_clr, GL_STATIC_DRAW);
+	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
+	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices, GL_STATIC_DRAW);
 
 	// param: 
 	//		目标属性的索引, 与location对应
@@ -155,24 +233,19 @@ int main() {
 	//		缓冲起始偏移量, 该属性在每一组数据中的起始位置
 	// 顶点属性0会链接到函数调用时绑定到GL_ARRAY_BUFFER的VBO
 	// 所谓的顶点属性0是给shader的，例如location=0的变量会找顶点属性0的数据
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	// 默认顶点属性是禁用的，这里启用，与现在的属性指针一起存进VAO，参数是属性下标
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 6 * sizeof(float), (void*)(3*sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
-
-	glBindVertexArray(VAOs[1]);
-	glBindBuffer(GL_ARRAY_BUFFER, VBOs[1]);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBOs[1]);
-	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices1, indices1, GL_STATIC_DRAW);
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 3 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
+	glEnableVertexAttribArray(2);
 
 	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 
+	float s = 0.0, step = 0.001;
 	// Render Loop，不断接受输入并绘制------------------------------------------
 	while (!glfwWindowShouldClose(window)) // 检查窗口有没有被要求退出
 	{
@@ -183,22 +256,43 @@ int main() {
 		glClearColor(0.2, 0.3, 0.3, 1.0); // 清空屏幕颜色
 		glClear(GL_COLOR_BUFFER_BIT); // 清空颜色缓冲
 
-		shaderPgYellow.use();
-		glBindVertexArray(VAOs[0]);
-		shaderPgYellow.set_4f("translation", .5f, 0.f, 0.f, 0.f);
+		shader_texture.use();
+		glBindVertexArray(VAO);
+
+		// 旋转
+		glm::mat4 trans = glm::mat4(1.0f);
+		trans = glm::translate(trans, glm::vec3(0.5, -0.5, 0));
+		//                               degree
+		trans = glm::rotate(trans, (float)glfwGetTime() * 10, glm::vec3(0, 0, 1));
+		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
+		unsigned int transformLoc = glGetUniformLocation(shader_texture.ID, "transform");
+		//                             矩阵数量,是否转置,转为指针(&trans[0][0]也可以)
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
+
+		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
+			s = std::min(1.f, s + step),
+			shader_texture.set_float("scale", s);
+		else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
+			s = std::max(0.f, s - step),
+			shader_texture.set_float("scale", s);
+
 		// params: type, start idx, count
 		// glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
 		//glBindVertexArray(0); // 解绑
 
+		float s = std::abs(std::sin((double)glfwGetTime()));
+		trans = glm::mat4(1);
+		trans = glm::translate(trans, glm::vec3(-0.5, 0.5, 0));
+		trans = glm::scale(trans, glm::vec3(s, s, s));
+		transformLoc = glGetUniformLocation(shader_texture.ID, "transform");
+		//                             矩阵数量,是否转置,opengl支持的格式
+		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &trans[0][0]);
+		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
+
+
 		// gluniform4f在当前激活的shader中设置变量值
-		shaderPgBlue.use();
-		glBindVertexArray(VAOs[1]);
-		float timeValue = glfwGetTime();
-		float greenValue = (sin(timeValue) / 2.f) + .5f;
-		shaderPgBlue.set_4f("ourColor", 0.f, greenValue, 0.f, 1.f);
-		shaderPgBlue.set_4f("translation", .5f, 0.f, 0.f, 0.f);
-		glDrawElements(GL_TRIANGLES, 3, GL_UNSIGNED_INT, 0);
+		// shaderPgBlue.set_4f("translation", .5f, 0.f, 0.f, 0.f);
 
 		// 双缓冲：一个用以保持显示，另一个储存当前正在渲染的值
 		glfwSwapBuffers(window); // 绘制缓冲

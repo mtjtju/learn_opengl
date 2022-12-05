@@ -6,12 +6,14 @@ using std::cout;
 using std::endl;
 
 /*
+ifstream---stringstream---string---char*
 ifstream.exception(failbit | badbit)
 ifstream.open(const char*)
 stringstream << ifstream.rdbuf()
 ifstream.close()
 stringstream.str() returns string
 string.c_str() returns char*
+somestuff;
 */
 Shader::Shader(const char* vertex_path, const char* fragment_path)
 {
@@ -95,7 +97,7 @@ void Shader::set_int(const std::string& name, int value) const
 	glUniform1i(glGetUniformLocation(ID, name.c_str()), value);
 }
 
-void Shader::set_float(const std::string& name, int value) const
+void Shader::set_float(const std::string& name, float value) const
 {
 	glUniform1f(glGetUniformLocation(ID, name.c_str()), value);
 }
