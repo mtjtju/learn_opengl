@@ -286,9 +286,9 @@ int main() {
 		{
 			glm::mat4 m, v, p, mvp;
 			m = glm::translate(m, cubePositions[i]);
-			if (i % 3 == 0)
+			if (i % 2 == 0)
 				m = glm::rotate(m, (float)glfwGetTime()*55 + 30.f * i, glm::vec3(0.5, 1, 0));
-			v = glm::translate(v, glm::vec3(0, 0, -6));
+			v = glm::translate(v, glm::vec3(0, 0, -3));
 			p = glm::perspective(45.f, window_width * 1.f / window_height, 0.1f, 100.f);
 			mvp = p * v * m;
 			unsigned int mvpLoc = glGetUniformLocation(shader_texture.ID, "mvp");
