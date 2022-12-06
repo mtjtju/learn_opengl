@@ -65,34 +65,6 @@ Shader
 	fragment shader: 输出必须是vec4; 可以定义输入，从顶点着色器拿数据
 	vertex shader: 从顶点数据直接读取输入，并依据layout解释数据; 可以定义输出。
 	uniform: 可以在着色器中声明一个uniform变量，在主程序中定义。作用类似于全局变量。
-	const char* vertexShaderSource =
-	"#version 330 core\n"
-	"layout (location=0) in vec3 aPos;\n"
-	"layout (location=1) in vec3 aColor;\n"
-	"out vec3 vertexColor;\n"
-	"void main()\n"
-	"{\n"
-	" gl_Position = vec4(aPos, 1.f);\n"
-	" vertexColor = aColor;\n"
-	"}\n";
-
-	const char* fragmentShaderYellow =
-	"#version 330 core\n"
-	"out vec4 FragColor;\n"
-	"in vec3 vertexColor;\n"
-	"void main()\n"
-	"{\n"
-	"	FragColor = vec4(vertexColor, 1.f);\n"
-	"}\n";
-
-	const char* fragmentShaderBlue =
-	"#version 330 core\n"
-	"out vec4 FragColor;\n"
-	"uniform vec4 ourColor;\n"
-	"void main()\n"
-	"{\n"
-	"	FragColor = ourColor;\n"
-	"}\n";
 */
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height)
@@ -115,7 +87,8 @@ int main() {
 	// 和新模式
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	GLFWwindow* window = glfwCreateWindow(800, 600, "ACCATopengl", NULL, NULL);
+	int window_width = 800, window_height = 600;
+	GLFWwindow* window = glfwCreateWindow(window_width, window_height, "ACCATopengl", NULL, NULL);
 	if (window == NULL)
 	{
 		cout << "Failed to create GLFW window" << endl;
@@ -136,20 +109,56 @@ int main() {
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
 	// 最终的屏幕空间
-	glViewport(0, 0, 800, 600);
+	glViewport(0, 0, window_width, window_height);
 
-	Shader shader_texture("shaders/vshader_texture.vert", "shaders/fshader_texture.frag");
+	Shader shader_texture("shaders/vshader_mvp.vert", "shaders/fshader_mvp.frag");
 
 	// 数据传输------------------------------------------------------------
 	// 模型输入
 	float uvscale = 1.0;
 	float vertices[] = {
-		 0.5f,  0.5f, 0.0f,   1.0f, 0.0f, 0.0f,   uvscale, uvscale,   // 右上
-		 0.5f, -0.5f, 0.0f,   0.0f, 1.0f, 0.0f,   uvscale, 0.0f,   // 右下
-		-0.5f, -0.5f, 0.0f,   0.0f, 0.0f, 1.0f,   0.0f, 0.0f,   // 左下
-		-0.5f,  0.5f, 0.0f,   1.0f, 1.0f, 0.0f,   0.0f, uvscale    // 左上
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
-	unsigned int indices[] = { 0, 1, 2, 0, 2, 3 };
 
 	// texture ----------------------------------
 	int width, height, nrChannels;
@@ -214,18 +223,15 @@ int main() {
 	// 类似于声明一个指针 my_ptr
 	glGenVertexArrays(1, &VAO);
 	glGenBuffers(1, &VBO);
-	glGenBuffers(1, &EBO);
 
 	// 类似于:opengl.arry_buffer = my_ptr
 	// 所以此后调用array_buffer用的都是my_ptr
 	glBindVertexArray(VAO); // 先调用，它会保存后面的EBO和属性指针的设置
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBindBuffer(GL_ELEMENT_ARRAY_BUFFER, EBO);
 
 	// 开辟内存空间并把数据存入对象中
 	// gl_static_draw表示数据基本不会变
 	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
-	glBufferData(GL_ELEMENT_ARRAY_BUFFER, sizeof indices, indices, GL_STATIC_DRAW);
 
 	// param: 
 	//		目标属性的索引, 与location对应
@@ -234,20 +240,29 @@ int main() {
 	//		缓冲起始偏移量, 该属性在每一组数据中的起始位置
 	// 顶点属性0会链接到函数调用时绑定到GL_ARRAY_BUFFER的VBO
 	// 所谓的顶点属性0是给shader的，例如location=0的变量会找顶点属性0的数据
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
 	// 默认顶点属性是禁用的，这里启用，与现在的属性指针一起存进VAO，参数是属性下标
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
-	glEnableVertexAttribArray(2);
 
-	//glPolygonMode(GL_FRONT_AND_BACK, GL_LINE);
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-
 	float s = 0.0, step = 0.001;
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
 	// Render Loop，不断接受输入并绘制------------------------------------------
+	glEnable(GL_DEPTH_TEST);
 	while (!glfwWindowShouldClose(window)) // 检查窗口有没有被要求退出
 	{
 		// 输入
@@ -260,16 +275,6 @@ int main() {
 		shader_texture.use();
 		glBindVertexArray(VAO);
 
-		// 旋转
-		glm::mat4 trans = glm::mat4(1.0f);
-		trans = glm::translate(trans, glm::vec3(0.5, -0.5, 0));
-		//                               degree
-		trans = glm::rotate(trans, (float)glfwGetTime() * 10, glm::vec3(0, 0, 1));
-		//trans = glm::scale(trans, glm::vec3(0.5, 0.5, 0.5));
-		unsigned int transformLoc = glGetUniformLocation(shader_texture.ID, "transform");
-		//                             矩阵数量,是否转置,转为指针(&trans[0][0]也可以)
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, glm::value_ptr(trans));
-
 		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
 			s = std::min(1.f, s + step),
 			shader_texture.set_float("scale", s);
@@ -277,27 +282,26 @@ int main() {
 			s = std::max(0.f, s - step),
 			shader_texture.set_float("scale", s);
 
-		// params: type, start idx, count
-		// glDrawArrays(GL_TRIANGLES, 0, 6);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-		//glBindVertexArray(0); // 解绑
+		for (int i = 0; i < 10; i++)
+		{
+			glm::mat4 m, v, p, mvp;
+			m = glm::translate(m, cubePositions[i]);
+			if (i % 3 == 0)
+				m = glm::rotate(m, (float)glfwGetTime()*55 + 30.f * i, glm::vec3(0.5, 1, 0));
+			v = glm::translate(v, glm::vec3(0, 0, -6));
+			p = glm::perspective(45.f, window_width * 1.f / window_height, 0.1f, 100.f);
+			mvp = p * v * m;
+			unsigned int mvpLoc = glGetUniformLocation(shader_texture.ID, "mvp");
+			glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
+			glDrawArrays(GL_TRIANGLES, 0, 36);
+		}
 
-		float s = std::abs(std::sin((double)glfwGetTime()));
-		trans = glm::mat4(1);
-		trans = glm::translate(trans, glm::vec3(-0.5, 0.5, 0));
-		trans = glm::scale(trans, glm::vec3(s, s, s));
-		transformLoc = glGetUniformLocation(shader_texture.ID, "transform");
-		//                             矩阵数量,是否转置,opengl支持的格式
-		glUniformMatrix4fv(transformLoc, 1, GL_FALSE, &trans[0][0]);
-		glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, 0);
-
-
-		// gluniform4f在当前激活的shader中设置变量值
-		// shaderPgBlue.set_4f("translation", .5f, 0.f, 0.f, 0.f);
 
 		// 双缓冲：一个用以保持显示，另一个储存当前正在渲染的值
 		glfwSwapBuffers(window); // 绘制缓冲
 		glfwPollEvents(); // 检查有没有事件发生
+
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	}
 	glfwTerminate(); // 释放资源
 
