@@ -57,6 +57,15 @@ opengl glm库与线性代数
 	trans = glm::translate(trans, glm::vec3(1, 1, 0));
 	vec = trans * vec;
 	cout << vec.x << ' ' << vec.y << ' ' << vec.z << endl;
+
+camera
+	lookat(pos, target, up)
+	欧拉角：
+		pitch俯仰角x，yaw偏航角y，roll滚转角z
+		通过欧拉角计算相机方向向量：
+			y = sin(pitch)
+			x = cos(pitch) * cos(Yaw)
+			z = cos(pitch) * sin(Yaw)
 */
 
 /*
@@ -67,16 +76,30 @@ Shader
 	uniform: 可以在着色器中声明一个uniform变量，在主程序中定义。作用类似于全局变量。
 */
 
-void framebuffer_size_callback(GLFWwindow* window, int width, int height)
-{
-	glViewport(0, 0, width, height);
-}
+/*
+glfw
+回调函数
+	glfwSetxxxCallback(window, fun_ptr)
+	这个函数是glfw声明的, 用户实现
+鼠标隐藏模式
+	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+	
+*/
 
-void processInput(GLFWwindow* window)
-{
-	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-		glfwSetWindowShouldClose(window, true);
-}
+void framebuffer_size_callback(GLFWwindow* window, int width, int height);
+void processInput(GLFWwindow* window);
+void mouse_callback(GLFWwindow* window, double x, double y);
+void mouse_callback_static(GLFWwindow* window, double x, double y);
+void scroll_callback(GLFWwindow* window, double x, double y);
+
+bool first_mouse = true;
+int width = 800, height = 600;
+double prex = width / 2;
+double prey = height / 2;
+double mouse_speed = 0.05;
+double pitch = 0, yaw = -90;
+float fov = 45.f;
+glm::vec3 cam_front;
 
 int main() {
 	// 初始化------------------------------------------------------------
@@ -159,6 +182,19 @@ int main() {
 		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
 		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
 	};
+	glm::vec3 cubePositions[] = {
+		glm::vec3(0.0f,  0.0f,  0.0f),
+		glm::vec3(2.0f,  5.0f, -15.0f),
+		glm::vec3(-1.5f, -2.2f, -2.5f),
+		glm::vec3(-3.8f, -2.0f, -12.3f),
+		glm::vec3(2.4f, -0.4f, -3.5f),
+		glm::vec3(-1.7f,  3.0f, -7.5f),
+		glm::vec3(1.3f, -2.0f, -2.5f),
+		glm::vec3(1.5f,  2.0f, -2.5f),
+		glm::vec3(1.5f,  0.2f, -1.5f),
+		glm::vec3(-1.3f,  1.0f, -1.5f)
+	};
+
 
 	// texture ----------------------------------
 	int width, height, nrChannels;
@@ -249,20 +285,24 @@ int main() {
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
 	float s = 0.0, step = 0.001;
-	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
+
+	// 相机
+	//		旋转
+	//		前后左右移动
+	
+	// glm::lookAt(eye, center, up)
+
+	glm::mat4 v, p, mvp;
+	glm::vec3 cam_pos(0, 0, 6);
+	cam_front.z = -1;
+	glm::vec3 up(0, 1, 0);
+	float cam_speed = 0.001f;
+	float delta_t = 0, cur_t = 0, pre_t = 0;
+
 	// Render Loop，不断接受输入并绘制------------------------------------------
 	glEnable(GL_DEPTH_TEST);
+	glfwSetCursorPosCallback(window, mouse_callback_static);
+	glfwSetScrollCallback(window, scroll_callback);
 	while (!glfwWindowShouldClose(window)) // 检查窗口有没有被要求退出
 	{
 		// 输入
@@ -282,14 +322,28 @@ int main() {
 			s = std::max(0.f, s - step),
 			shader_texture.set_float("scale", s);
 
+		p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
+		cur_t = glfwGetTime();
+		delta_t = cur_t - pre_t;
+		pre_t = cur_t;
+		cam_speed = delta_t * 2.5f;
 		for (int i = 0; i < 10; i++)
 		{
-			glm::mat4 m, v, p, mvp;
+			glm::mat4 m;
 			m = glm::translate(m, cubePositions[i]);
 			if (i % 2 == 0)
 				m = glm::rotate(m, (float)glfwGetTime()*55 + 30.f * i, glm::vec3(0.5, 1, 0));
-			v = glm::translate(v, glm::vec3(0, 0, -3));
-			p = glm::perspective(45.f, window_width * 1.f / window_height, 0.1f, 100.f);
+
+			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+				cam_pos += cam_front * cam_speed;
+			else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+				cam_pos -= cam_front * cam_speed;
+			else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+				cam_pos -= glm::cross(cam_front, up) * cam_speed;
+			else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+				cam_pos += glm::cross(cam_front, up) * cam_speed;
+			v = glm::lookAt(cam_pos, cam_pos + cam_front, up);
+
 			mvp = p * v * m;
 			unsigned int mvpLoc = glGetUniformLocation(shader_texture.ID, "mvp");
 			glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
@@ -306,4 +360,60 @@ int main() {
 	glfwTerminate(); // 释放资源
 
 	return 0;
+}
+
+void framebuffer_size_callback(GLFWwindow* window, int width, int height)
+{
+	glViewport(0, 0, width, height);
+}
+
+void processInput(GLFWwindow* window)
+{
+	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+		glfwSetWindowShouldClose(window, true);
+}
+
+void mouse_callback(GLFWwindow* window, double x, double y)
+{
+	if (first_mouse)
+		prex = x,
+		prey = y,
+		first_mouse = false;
+
+	double yd = prey - y, xd = x - prex;
+	prey = y, prex = x;
+	pitch += yd * mouse_speed;
+	yaw += xd * mouse_speed;
+	pitch = std::max(-89.0, pitch);
+	pitch = std::min(89.0, pitch);
+
+	float cy = sin(glm::radians(pitch)), 
+		cx = cos(glm::radians(pitch)) * cos(glm::radians(yaw)), 
+		cz = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
+
+	cam_front.x = cx, cam_front.y = cy, cam_front.z = cz;
+	cam_front = glm::normalize(cam_front);
+	// cout << yd << ' ' << cam_front.x << ' ' << cam_front.y << ' ' << cam_front.z << endl;
+}
+
+void mouse_callback_static(GLFWwindow* window, double x, double y)
+{
+	float scale = 0.4 * glm::pi<float>();
+	float pitch_rad = (300 - y) / 600.0 * scale;
+	float yaw_rad = (x - 400) / 800.0* scale + glm::pi<float>() * -.5f;
+	float cy = sin(pitch_rad);
+	float cx = cos(pitch_rad) * cos(yaw_rad);
+	float cz = cos(pitch_rad) * sin(yaw_rad);
+
+	cam_front.x = cx, cam_front.y = cy, cam_front.z = cz;
+	cam_front = glm::normalize(cam_front);
+	// cout << y << ' ' << x << ' ' << cy << ' ' << cx << ' ' << cz << endl;
+}
+
+void scroll_callback(GLFWwindow* window, double x, double y)
+{
+	// cout << y << endl;
+	fov = -y;
+	fov = std::min(1.f, fov);
+	fov = std::max(60.f, fov);
 }
