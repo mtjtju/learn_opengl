@@ -6,6 +6,7 @@
 #include <glm/gtc/type_ptr.hpp>
 
 #include "Shader.h"
+#include "camera_fps.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -89,7 +90,6 @@ glfw
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double x, double y);
-void mouse_callback_static(GLFWwindow* window, double x, double y);
 void scroll_callback(GLFWwindow* window, double x, double y);
 
 bool first_mouse = true;
@@ -100,6 +100,8 @@ double mouse_speed = 0.05;
 double pitch = 0, yaw = -90;
 float fov = 45.f;
 glm::vec3 cam_front;
+Camera cam;
+
 
 int main() {
 	// 初始化------------------------------------------------------------
@@ -293,15 +295,14 @@ int main() {
 	// glm::lookAt(eye, center, up)
 
 	glm::mat4 v, p, mvp;
-	glm::vec3 cam_pos(0, 0, 6);
-	cam_front.z = -1;
-	glm::vec3 up(0, 1, 0);
-	float cam_speed = 0.001f;
+	cam.Position = glm::vec3(0, 0, 6);
+	cam.Front.z = -1;
+	cam.Up = glm::vec3(0, 1, 0);
 	float delta_t = 0, cur_t = 0, pre_t = 0;
 
 	// Render Loop，不断接受输入并绘制------------------------------------------
 	glEnable(GL_DEPTH_TEST);
-	glfwSetCursorPosCallback(window, mouse_callback_static);
+	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
 	while (!glfwWindowShouldClose(window)) // 检查窗口有没有被要求退出
 	{
@@ -326,7 +327,6 @@ int main() {
 		cur_t = glfwGetTime();
 		delta_t = cur_t - pre_t;
 		pre_t = cur_t;
-		cam_speed = delta_t * 2.5f;
 		for (int i = 0; i < 10; i++)
 		{
 			glm::mat4 m;
@@ -335,14 +335,14 @@ int main() {
 				m = glm::rotate(m, (float)glfwGetTime()*55 + 30.f * i, glm::vec3(0.5, 1, 0));
 
 			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				cam_pos += cam_front * cam_speed;
+				cam.ProcessKeyboard(Camera_Movement::FORWARD, delta_t);
 			else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				cam_pos -= cam_front * cam_speed;
+				cam.ProcessKeyboard(Camera_Movement::BACKWARD, delta_t);
 			else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-				cam_pos -= glm::cross(cam_front, up) * cam_speed;
+				cam.ProcessKeyboard(Camera_Movement::LEFT, delta_t);
 			else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				cam_pos += glm::cross(cam_front, up) * cam_speed;
-			v = glm::lookAt(cam_pos, cam_pos + cam_front, up);
+				cam.ProcessKeyboard(Camera_Movement::RIGHT, delta_t);
+			v = cam.GetViewMatrix();
 
 			mvp = p * v * m;
 			unsigned int mvpLoc = glGetUniformLocation(shader_texture.ID, "mvp");
@@ -382,38 +382,11 @@ void mouse_callback(GLFWwindow* window, double x, double y)
 
 	double yd = prey - y, xd = x - prex;
 	prey = y, prex = x;
-	pitch += yd * mouse_speed;
-	yaw += xd * mouse_speed;
-	pitch = std::max(-89.0, pitch);
-	pitch = std::min(89.0, pitch);
-
-	float cy = sin(glm::radians(pitch)), 
-		cx = cos(glm::radians(pitch)) * cos(glm::radians(yaw)), 
-		cz = cos(glm::radians(pitch)) * sin(glm::radians(yaw));
-
-	cam_front.x = cx, cam_front.y = cy, cam_front.z = cz;
-	cam_front = glm::normalize(cam_front);
-	// cout << yd << ' ' << cam_front.x << ' ' << cam_front.y << ' ' << cam_front.z << endl;
-}
-
-void mouse_callback_static(GLFWwindow* window, double x, double y)
-{
-	float scale = 0.4 * glm::pi<float>();
-	float pitch_rad = (300 - y) / 600.0 * scale;
-	float yaw_rad = (x - 400) / 800.0* scale + glm::pi<float>() * -.5f;
-	float cy = sin(pitch_rad);
-	float cx = cos(pitch_rad) * cos(yaw_rad);
-	float cz = cos(pitch_rad) * sin(yaw_rad);
-
-	cam_front.x = cx, cam_front.y = cy, cam_front.z = cz;
-	cam_front = glm::normalize(cam_front);
-	// cout << y << ' ' << x << ' ' << cy << ' ' << cx << ' ' << cz << endl;
+	cam.ProcessMouseMovement(xd, yd);
 }
 
 void scroll_callback(GLFWwindow* window, double x, double y)
 {
 	// cout << y << endl;
-	fov = -y;
-	fov = std::min(1.f, fov);
-	fov = std::max(60.f, fov);
+	cam.ProcessMouseScroll(y);
 }
