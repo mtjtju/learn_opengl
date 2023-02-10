@@ -13,8 +13,7 @@
 using std::cout;
 using std::endl;
 
-/*
-ACCAT!~!!!!
+/* ACCAT!~!!!!
 VAO
 VBO
 EBO or IBO
