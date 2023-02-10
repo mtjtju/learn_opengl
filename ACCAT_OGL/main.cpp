@@ -87,6 +87,30 @@ glfw
 	
 */
 
+/*
+Words
+OpenGL
+GLAD
+视口
+图形管线
+顶点着色器:		输出为裁剪空间
+片段着色器:		屏幕空间是输入
+标准化设备坐标
+顶点缓冲对象
+顶点数组对象
+元素缓冲对象
+Uniform
+GLSL
+纹理过滤:		双线性和三线性
+多级渐远纹理
+GLM
+局部空间
+裁剪空间:		vshader的输出，w可能不是1
+屏幕空间
+LookAt矩阵
+欧拉角
+*/
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double x, double y);
@@ -376,8 +400,8 @@ void processInput(GLFWwindow* window)
 void mouse_callback(GLFWwindow* window, double x, double y)
 {
 	if (first_mouse)
-		prex = x,
-		prey = y,
+		prex = width / 2.0,
+		prey = height / 2.0,
 		first_mouse = false;
 
 	double yd = prey - y, xd = x - prex;

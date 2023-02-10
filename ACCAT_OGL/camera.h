@@ -18,8 +18,8 @@ enum class Camera_Movement {
 };
 
 // Default camera values
-const float YAW = -90.0f;
-const float PITCH = 0.0f;
+const float YAW = -90.0f; // yaw=0 if x axis, pointing right when look at -z
+const float PITCH = 0.0f; // trowing a ball!
 const float SPEED = 2.5f;
 const float SENSITIVITY = 0.1f;
 const float ZOOM = 45.0f;
