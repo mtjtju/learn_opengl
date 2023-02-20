@@ -1,1 +1,7 @@
 .vs
+libs/
+models/
+helpers/
+assimp*
+*.txt
+*.obj
