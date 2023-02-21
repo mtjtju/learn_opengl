@@ -111,13 +111,47 @@ LookAt矩阵
 欧拉角
 */
 
+/*
+一种流程理解方式：
+	GL像一个大对象实例，有一系列属性和函数
+	一般是先声明一些独立对象，在赋值给GL的属性，再调用GL的一些函数：
+	step1: glGenxxx		声明ptr
+	step2: glBindxxx	ptr赋值给GL.x
+	step3: glBufferData,glDraw....
+						对GL做一些事情,也就是对GL.x做一些事,也就是对ptr做一些事
+*/
+
+/*
+平行光：direction
+点光源：强度系数=1/距离的二次式，<=1.0
+		除了位置还需要三个值来定义：二次项、一次项和常数项的系数
+聚光spotlight:
+		由两个锥体定义，椎体之间光强按照余弦值进行线性插值0~1
+		参数：
+			位置
+			方向
+			内切光角（锥体角的一半，一般是余弦值）
+			外切光角（锥体角的一半，一般是余弦值）
+
+结构体类型的uniform赋值:
+	根据成员变量的类型传具体数值，名称参数为 结构体变量名+'.'+成员变量名
+结构体类型数组的uniform赋值:
+	根据成员变量的类型传具体数值，名称参数为 结构体数组变量名+[idx]+'.'+成员变量名
+
+*/
+
+/*
+多光源实操
+*/
+
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double x, double y);
 void scroll_callback(GLFWwindow* window, double x, double y);
+unsigned int loadTexture(char const* path);
 
 bool first_mouse = true;
-int width = 800, height = 600;
+int width = 1200, height = 900;
 double prex = width / 2;
 double prey = height / 2;
 double mouse_speed = 0.05;
@@ -125,6 +159,7 @@ double pitch = 0, yaw = -90;
 float fov = 45.f;
 glm::vec3 cam_front;
 Camera cam;
+glm::vec3 light_pos(1.2f, 1.f, 2.f);
 
 
 int main() {
@@ -136,7 +171,7 @@ int main() {
 	// 和新模式
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
-	int window_width = 800, window_height = 600;
+	int window_width = width, window_height = height;
 	GLFWwindow* window = glfwCreateWindow(window_width, window_height, "ACCATopengl", NULL, NULL);
 	if (window == NULL)
 	{
@@ -160,165 +195,94 @@ int main() {
 	// 最终的屏幕空间
 	glViewport(0, 0, window_width, window_height);
 
-	Shader shader_texture("shaders/vshader_mvp.vert", "shaders/fshader_mvp.frag");
+	Shader shader_blinnphong("shaders/blinnphong.vt", "shaders/blinnphong.fr");
+	Shader shader_blinnphong_light("shaders/blinnphong_light_obj.vt", "shaders/blinnphong_light_obj.fr");
 
 	// 数据传输------------------------------------------------------------
 	// 模型输入
-	float uvscale = 1.0;
 	float vertices[] = {
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		// positions          // normals           // texture coords
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
 
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
 
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
 
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
 
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
 	};
-	glm::vec3 cubePositions[] = {
-		glm::vec3(0.0f,  0.0f,  0.0f),
-		glm::vec3(2.0f,  5.0f, -15.0f),
-		glm::vec3(-1.5f, -2.2f, -2.5f),
-		glm::vec3(-3.8f, -2.0f, -12.3f),
-		glm::vec3(2.4f, -0.4f, -3.5f),
-		glm::vec3(-1.7f,  3.0f, -7.5f),
-		glm::vec3(1.3f, -2.0f, -2.5f),
-		glm::vec3(1.5f,  2.0f, -2.5f),
-		glm::vec3(1.5f,  0.2f, -1.5f),
-		glm::vec3(-1.3f,  1.0f, -1.5f)
+	glm::vec3 obj_positions[] = {
+			glm::vec3(0.0f,  0.0f,  0.0f),
+			glm::vec3(2.0f,  5.0f, -15.0f),
+			glm::vec3(-1.5f, -2.2f, -2.5f),
+			glm::vec3(-3.8f, -2.0f, -12.3f),
+			glm::vec3(2.4f, -0.4f, -3.5f),
+			glm::vec3(-1.7f,  3.0f, -7.5f),
+			glm::vec3(1.3f, -2.0f, -2.5f),
+			glm::vec3(1.5f,  2.0f, -2.5f),
+			glm::vec3(1.5f,  0.2f, -1.5f),
+			glm::vec3(-1.3f,  1.0f, -1.5f)
 	};
-
-
-	// texture ----------------------------------
-	int width, height, nrChannels;
-	stbi_set_flip_vertically_on_load(true);
-	unsigned char* data = stbi_load("../textures/container.jpg", &width, &height, &nrChannels, 0);
-	unsigned int texture;
-	glGenTextures(1, &texture);
-	glActiveTexture(GL_TEXTURE0);
-	glBindTexture(GL_TEXTURE_2D, texture);
-
-	// 环绕、过滤方式
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_CLAMP_TO_EDGE); // s, t是两个轴
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_CLAMP_TO_EDGE);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-
-	// 数据传到纹理对象
-	if (data)
-	{
-		//           type,mipmap level,form,   w,    h,     0,   save rgb as byte(char), data
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGB, width, height, 0, GL_RGB, GL_UNSIGNED_BYTE, data);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		cout << "Failed to load texture" << endl;
-	}
-	stbi_image_free(data);
-
-	int width_face, height_face, nrChannels_face;
-	unsigned int texture_face;
-	unsigned char* face = stbi_load("../textures/awesomeface.png", &width_face, &height_face, &nrChannels_face, 0);
-	glGenTextures(1, &texture_face);
-	glActiveTexture(GL_TEXTURE1);
-	glBindTexture(GL_TEXTURE_2D, texture_face);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT); // s, t是两个轴
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-	glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-	if (face)
-	{
-		glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, width_face, height_face, 0, GL_RGBA, GL_UNSIGNED_BYTE, face);
-		glGenerateMipmap(GL_TEXTURE_2D);
-	}
-	else
-	{
-		cout << "Failed to load texture" << endl;
-	}
-	stbi_image_free(face);
-
-	shader_texture.use();
-	glUniform1i(glGetUniformLocation(shader_texture.ID, "ourTexture"), 0);
-	glUniform1i(glGetUniformLocation(shader_texture.ID, "faceTexture"), 1);
-
-	// VAO 负责解释VBO中的顶点是啥
-	//		储存了EBO，属性指针，顶点属性disable\enalbe调用，可以通过指针找到VBO中的数据
-	//		每次绑定它相当于重新绑定EBO并设置了以上的值
-	// VBO 负责在显存中储存顶点的对象
-	unsigned int VAO, VBO, EBO;
+	unsigned int VAO, VBO;
 
 	// 类似于声明一个指针 my_ptr
 	glGenVertexArrays(1, &VAO);
-	glGenBuffers(1, &VBO);
-
-	// 类似于:opengl.arry_buffer = my_ptr
-	// 所以此后调用array_buffer用的都是my_ptr
 	glBindVertexArray(VAO); // 先调用，它会保存后面的EBO和属性指针的设置
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 
-	// 开辟内存空间并把数据存入对象中
-	// gl_static_draw表示数据基本不会变
+	glGenBuffers(1, &VBO);
+	glBindBuffer(GL_ARRAY_BUFFER, VBO);
 	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
 
-	// param: 
-	//		目标属性的索引, 与location对应
-	//		属性向量的维度
-	//		type, map to [0,1], 组步长
-	//		缓冲起始偏移量, 该属性在每一组数据中的起始位置
-	// 顶点属性0会链接到函数调用时绑定到GL_ARRAY_BUFFER的VBO
-	// 所谓的顶点属性0是给shader的，例如location=0的变量会找顶点属性0的数据
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
-	// 默认顶点属性是禁用的，这里启用，与现在的属性指针一起存进VAO，参数是属性下标
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
 	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3*sizeof(float)));
+	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
 	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
+	glEnableVertexAttribArray(2);
+
+	unsigned int textureID = loadTexture("../textures/container2.png");
+	unsigned int texture_spec_ID = loadTexture("../textures/container2_specular.png");
+	unsigned int texture_green_ID = loadTexture("../textures/matrix.jpg");
+	shader_blinnphong.use();
+	shader_blinnphong.set_int("obj_mt.diff", 0);
+	shader_blinnphong.set_int("obj_mt.spec", 1);
+	shader_blinnphong.set_int("obj_mt.emi", 2);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
-	float s = 0.0, step = 0.001;
-
-	// 相机
-	//		旋转
-	//		前后左右移动
-	
-	// glm::lookAt(eye, center, up)
-
-	glm::mat4 v, p, mvp;
 	cam.Position = glm::vec3(0, 0, 6);
 	cam.Front.z = -1;
 	cam.Up = glm::vec3(0, 1, 0);
@@ -334,53 +298,96 @@ int main() {
 		processInput(window);
 
 		// 渲染指令
-		glClearColor(0.2, 0.3, 0.3, 1.0); // 清空屏幕颜色
-		glClear(GL_COLOR_BUFFER_BIT); // 清空颜色缓冲
+		glClearColor(0.01f, 0.01f, 0.01f, 0.1f); // 清空屏幕颜色
+		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-		shader_texture.use();
+		shader_blinnphong.use();
+		shader_blinnphong.set_float("obj_mt.gloss", 64.f);
+		shader_blinnphong.set_vec3("cam_pos", cam.Position);
+		glm::vec3 obj_clr(1.f, 0.5f, 0.3f), light_clr(1.f, 1.f, 1.f);
+		glm::vec3 dim_red(0.3f, 0.0f, 0.0f), dim_spot = 0.3f * light_clr;
+		glm::vec3 light0_pos(0.5, 0.5, -4), light_spot_pos(0.2, 0.4, 1.2);
+		shader_blinnphong.set_vec3("light[0].amb", 0.2f * dim_red);
+		shader_blinnphong.set_vec3("light[0].diff", 0.5f * dim_red);
+		shader_blinnphong.set_vec3("light[0].spec", dim_red);
+		shader_blinnphong.set_vec3("light[0].pos", light0_pos);
+		shader_blinnphong.set_vec3("light_para[0].amb", 0.1f * light_clr);
+		shader_blinnphong.set_vec3("light_para[0].diff", 0.3f * light_clr);
+		shader_blinnphong.set_vec3("light_para[0].spec", light_clr);
+		shader_blinnphong.set_vec3("light_para[0].dir", glm::vec3(-2, 1, 1));
+		shader_blinnphong.set_vec3("light_spot[0].amb", 0.2f * dim_spot);
+		shader_blinnphong.set_vec3("light_spot[0].diff", 0.5f * dim_spot);
+		shader_blinnphong.set_vec3("light_spot[0].spec", dim_spot);
+		shader_blinnphong.set_vec3("light_spot[0].dir", glm::vec3(0, 0, -1));
+		shader_blinnphong.set_vec3("light_spot[0].pos", light_spot_pos);
+		shader_blinnphong.set_float("light_spot[0].inner_theta", 0.98f);
+		shader_blinnphong.set_float("light_spot[0].outer_theta", 0.94f);
+
+
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glActiveTexture(GL_TEXTURE1);
+		glBindTexture(GL_TEXTURE_2D, texture_spec_ID);
+		// glActiveTexture(GL_TEXTURE2);
+		// glBindTexture(GL_TEXTURE_2D, texture_green_ID);
+
 		glBindVertexArray(VAO);
 
-		if (glfwGetKey(window, GLFW_KEY_UP) == GLFW_PRESS)
-			s = std::min(1.f, s + step),
-			shader_texture.set_float("scale", s);
-		else if (glfwGetKey(window, GLFW_KEY_DOWN) == GLFW_PRESS)
-			s = std::max(0.f, s - step),
-			shader_texture.set_float("scale", s);
-
-		p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
 		cur_t = glfwGetTime();
 		delta_t = cur_t - pre_t;
 		pre_t = cur_t;
+		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::FORWARD, delta_t);
+		else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::BACKWARD, delta_t);
+		else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::LEFT, delta_t);
+		else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::RIGHT, delta_t);
+		else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::UP, delta_t);
+		else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+			cam.ProcessKeyboard(Camera_Movement::DOWN, delta_t);
+		glm::mat4 v = cam.GetViewMatrix();
+		glm::mat4 p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
+
+		shader_blinnphong.set_mat4("p", p);
+		shader_blinnphong.set_mat4("v", v);
+
 		for (int i = 0; i < 10; i++)
 		{
-			glm::mat4 m;
-			m = glm::translate(m, cubePositions[i]);
-			if (i % 2 == 0)
-				m = glm::rotate(m, (float)glfwGetTime()*55 + 30.f * i, glm::vec3(0.5, 1, 0));
-
-			if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-				cam.ProcessKeyboard(Camera_Movement::FORWARD, delta_t);
-			else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-				cam.ProcessKeyboard(Camera_Movement::BACKWARD, delta_t);
-			else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-				cam.ProcessKeyboard(Camera_Movement::LEFT, delta_t);
-			else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-				cam.ProcessKeyboard(Camera_Movement::RIGHT, delta_t);
-			v = cam.GetViewMatrix();
-
-			mvp = p * v * m;
-			unsigned int mvpLoc = glGetUniformLocation(shader_texture.ID, "mvp");
-			glUniformMatrix4fv(mvpLoc, 1, GL_FALSE, glm::value_ptr(mvp));
+			glm::mat4 m(1.0);
+			m = glm::translate(m, obj_positions[i]);
+			float angle = 20.f * i;
+			m = glm::rotate(m, angle, glm::vec3(1.f, 0.3f, 0.5f));
+			shader_blinnphong.set_mat4("m", m);
 			glDrawArrays(GL_TRIANGLES, 0, 36);
 		}
 
+
+		shader_blinnphong_light.use();
+		shader_blinnphong_light.set_vec3("light_clr", dim_red);
+		glm::mat4 m(1.0);
+		m = glm::translate(m, light0_pos);
+		m = glm::scale(m, glm::vec3(0.2f));
+		shader_blinnphong_light.set_mat4("p", p);
+		shader_blinnphong_light.set_mat4("v", v);
+		shader_blinnphong_light.set_mat4("m", m);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		shader_blinnphong_light.set_vec3("light_clr", dim_spot);
+		m = glm::mat4(1.0);
+		m = glm::translate(m, light_spot_pos);
+		m = glm::scale(m, glm::vec3(0.2f));
+		shader_blinnphong_light.set_mat4("m", m);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
 
 		// 双缓冲：一个用以保持显示，另一个储存当前正在渲染的值
 		glfwSwapBuffers(window); // 绘制缓冲
 		glfwPollEvents(); // 检查有没有事件发生
 
-		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 	}
+	glDeleteVertexArrays(1, &VAO);
+	glDeleteBuffers(1, &VBO);
 	glfwTerminate(); // 释放资源
 
 	return 0;
@@ -413,4 +420,41 @@ void scroll_callback(GLFWwindow* window, double x, double y)
 {
 	// cout << y << endl;
 	cam.ProcessMouseScroll(y);
+}
+
+unsigned int loadTexture(char const* path)
+{
+	unsigned int textureID;
+	glGenTextures(1, &textureID);
+
+	int width, height, nrComponents;
+	unsigned char* data = stbi_load(path, &width, &height, &nrComponents, 0);
+	if (data)
+	{
+		GLenum format;
+		if (nrComponents == 1)
+			format = GL_RED;
+		else if (nrComponents == 3)
+			format = GL_RGB;
+		else if (nrComponents == 4)
+			format = GL_RGBA;
+
+		glBindTexture(GL_TEXTURE_2D, textureID);
+		glTexImage2D(GL_TEXTURE_2D, 0, format, width, height, 0, format, GL_UNSIGNED_BYTE, data);
+		glGenerateMipmap(GL_TEXTURE_2D);
+
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR_MIPMAP_LINEAR);
+		glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+		stbi_image_free(data);
+	}
+	else
+	{
+		std::cout << "Texture failed to load at path: " << path << std::endl;
+		stbi_image_free(data);
+	}
+
+	return textureID;
 }
