@@ -1,4 +1,6 @@
-﻿  main.cpp
+﻿  已复制         1 个文件。
+  已复制         1 个文件。
+  main.cpp
   GLM: rotate function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
   GLM: rotate_slow function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
   GLM: perspective function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
@@ -11,10 +13,9 @@
   GLM: yaw function returning degrees is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
   GLM: angle function returning degrees is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
   GLM: angleAxis function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
-D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(336,22): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
-D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(416,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(416,27): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
-D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(422,25): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(229,22): warning C4244: '=': conversion from 'double' to 'float', possible loss of data
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(285,31): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(285,27): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
+D:\Miao\Study\code\learn_opengl\ACCAT_OGL\main.cpp(291,25): warning C4244: 'argument': conversion from 'double' to 'float', possible loss of data
   GLM: perspective function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
-  GLM: rotate function taking degrees as a parameter is deprecated. #define GLM_FORCE_RADIANS before including GLM headers to remove this message.
   ACCAT_OGL.vcxproj -> D:\Miao\Study\code\learn_opengl\ACCAT_OGL\x64\Debug\ACCAT_OGL.exe

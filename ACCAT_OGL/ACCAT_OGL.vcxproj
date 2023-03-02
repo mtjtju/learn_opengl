@@ -124,6 +124,10 @@
       <GenerateDebugInformation>true</GenerateDebugInformation>
       <AdditionalDependencies>glfw3.lib;opengl32.lib;%(AdditionalDependencies)</AdditionalDependencies>
     </Link>
+    <PreBuildEvent>
+      <Command>Copy /Y /V ..\libs\assimp-vc143-mtd.dll $(OutDirFullPath)
+Copy /Y /V ..\libs\assimp-vc143-mtd.lib $(OutDirFullPath)</Command>
+    </PreBuildEvent>
   </ItemDefinitionGroup>
   <ItemDefinitionGroup Condition="'$(Configuration)|$(Platform)'=='Release|x64'">
     <ClCompile>
@@ -149,6 +153,8 @@
   <ItemGroup>
     <ClInclude Include="camera.h" />
     <ClInclude Include="camera_fps.h" />
+    <ClInclude Include="mesh.h" />
+    <ClInclude Include="model.h" />
     <ClInclude Include="Shader.h" />
     <ClInclude Include="stb_image.h" />
   </ItemGroup>

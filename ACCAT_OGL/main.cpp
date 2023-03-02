@@ -5,8 +5,14 @@
 #include <glm/gtc/matrix_transform.hpp>
 #include <glm/gtc/type_ptr.hpp>
 
+#include<assimp/Importer.hpp>
+#include<assimp/scene.h>
+#include<assimp/postprocess.h>
+#pragma comment(lib, "assimp-vc143-mtd.lib")
+
 #include "Shader.h"
 #include "camera_fps.h"
+#include "model.h"
 #define STB_IMAGE_IMPLEMENTATION
 #include "stb_image.h"
 
@@ -195,91 +201,8 @@ int main() {
 	// 最终的屏幕空间
 	glViewport(0, 0, window_width, window_height);
 
-	Shader shader_blinnphong("shaders/blinnphong.vt", "shaders/blinnphong.fr");
-	Shader shader_blinnphong_light("shaders/blinnphong_light_obj.vt", "shaders/blinnphong_light_obj.fr");
-
-	// 数据传输------------------------------------------------------------
-	// 模型输入
-	float vertices[] = {
-		// positions          // normals           // texture coords
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-	};
-	glm::vec3 obj_positions[] = {
-			glm::vec3(0.0f,  0.0f,  0.0f),
-			glm::vec3(2.0f,  5.0f, -15.0f),
-			glm::vec3(-1.5f, -2.2f, -2.5f),
-			glm::vec3(-3.8f, -2.0f, -12.3f),
-			glm::vec3(2.4f, -0.4f, -3.5f),
-			glm::vec3(-1.7f,  3.0f, -7.5f),
-			glm::vec3(1.3f, -2.0f, -2.5f),
-			glm::vec3(1.5f,  2.0f, -2.5f),
-			glm::vec3(1.5f,  0.2f, -1.5f),
-			glm::vec3(-1.3f,  1.0f, -1.5f)
-	};
-	unsigned int VAO, VBO;
-
-	// 类似于声明一个指针 my_ptr
-	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO); // 先调用，它会保存后面的EBO和属性指针的设置
-
-	glGenBuffers(1, &VBO);
-	glBindBuffer(GL_ARRAY_BUFFER, VBO);
-	glBufferData(GL_ARRAY_BUFFER, sizeof vertices, vertices, GL_STATIC_DRAW);
-
-	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)0);
-	glEnableVertexAttribArray(0);
-	glVertexAttribPointer(1, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(3*sizeof(float)));
-	glEnableVertexAttribArray(1);
-	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
-	glEnableVertexAttribArray(2);
-
-	unsigned int textureID = loadTexture("../textures/container2.png");
-	unsigned int texture_spec_ID = loadTexture("../textures/container2_specular.png");
-	unsigned int texture_green_ID = loadTexture("../textures/matrix.jpg");
-	shader_blinnphong.use();
-	shader_blinnphong.set_int("obj_mt.diff", 0);
-	shader_blinnphong.set_int("obj_mt.spec", 1);
-	shader_blinnphong.set_int("obj_mt.emi", 2);
+	Shader shader("shaders/shader_assimp.vt", "shaders/shader_assimp.fr");
+	Model nano("../models/nanosuit/nanosuit.obj");
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -301,37 +224,7 @@ int main() {
 		glClearColor(0.01f, 0.01f, 0.01f, 0.1f); // 清空屏幕颜色
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
-		shader_blinnphong.use();
-		shader_blinnphong.set_float("obj_mt.gloss", 64.f);
-		shader_blinnphong.set_vec3("cam_pos", cam.Position);
-		glm::vec3 obj_clr(1.f, 0.5f, 0.3f), light_clr(1.f, 1.f, 1.f);
-		glm::vec3 dim_red(0.3f, 0.0f, 0.0f), dim_spot = 0.3f * light_clr;
-		glm::vec3 light0_pos(0.5, 0.5, -4), light_spot_pos(0.2, 0.4, 1.2);
-		shader_blinnphong.set_vec3("light[0].amb", 0.2f * dim_red);
-		shader_blinnphong.set_vec3("light[0].diff", 0.5f * dim_red);
-		shader_blinnphong.set_vec3("light[0].spec", dim_red);
-		shader_blinnphong.set_vec3("light[0].pos", light0_pos);
-		shader_blinnphong.set_vec3("light_para[0].amb", 0.1f * light_clr);
-		shader_blinnphong.set_vec3("light_para[0].diff", 0.3f * light_clr);
-		shader_blinnphong.set_vec3("light_para[0].spec", light_clr);
-		shader_blinnphong.set_vec3("light_para[0].dir", glm::vec3(-2, 1, 1));
-		shader_blinnphong.set_vec3("light_spot[0].amb", 0.2f * dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].diff", 0.5f * dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].spec", dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].dir", glm::vec3(0, 0, -1));
-		shader_blinnphong.set_vec3("light_spot[0].pos", light_spot_pos);
-		shader_blinnphong.set_float("light_spot[0].inner_theta", 0.98f);
-		shader_blinnphong.set_float("light_spot[0].outer_theta", 0.94f);
-
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture_spec_ID);
-		// glActiveTexture(GL_TEXTURE2);
-		// glBindTexture(GL_TEXTURE_2D, texture_green_ID);
-
-		glBindVertexArray(VAO);
+		shader.use();
 
 		cur_t = glfwGetTime();
 		delta_t = cur_t - pre_t;
@@ -350,44 +243,20 @@ int main() {
 			cam.ProcessKeyboard(Camera_Movement::DOWN, delta_t);
 		glm::mat4 v = cam.GetViewMatrix();
 		glm::mat4 p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
+		glm::mat4 m = glm::mat4(1.0f);
+		m = glm::translate(m, glm::vec3(0.f, -0.5f, 0.f));
+		m = glm::scale(m, glm::vec3(0.2f, 0.2f, 0.2f));
 
-		shader_blinnphong.set_mat4("p", p);
-		shader_blinnphong.set_mat4("v", v);
-
-		for (int i = 0; i < 10; i++)
-		{
-			glm::mat4 m(1.0);
-			m = glm::translate(m, obj_positions[i]);
-			float angle = 20.f * i;
-			m = glm::rotate(m, angle, glm::vec3(1.f, 0.3f, 0.5f));
-			shader_blinnphong.set_mat4("m", m);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
-
-		shader_blinnphong_light.use();
-		shader_blinnphong_light.set_vec3("light_clr", dim_red);
-		glm::mat4 m(1.0);
-		m = glm::translate(m, light0_pos);
-		m = glm::scale(m, glm::vec3(0.2f));
-		shader_blinnphong_light.set_mat4("p", p);
-		shader_blinnphong_light.set_mat4("v", v);
-		shader_blinnphong_light.set_mat4("m", m);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		shader_blinnphong_light.set_vec3("light_clr", dim_spot);
-		m = glm::mat4(1.0);
-		m = glm::translate(m, light_spot_pos);
-		m = glm::scale(m, glm::vec3(0.2f));
-		shader_blinnphong_light.set_mat4("m", m);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
+		shader.set_mat4("p", p);
+		shader.set_mat4("v", v);
+		shader.set_mat4("m", m);
+		nano.Draw(shader);
 
 		// 双缓冲：一个用以保持显示，另一个储存当前正在渲染的值
 		glfwSwapBuffers(window); // 绘制缓冲
 		glfwPollEvents(); // 检查有没有事件发生
 
 	}
-	glDeleteVertexArrays(1, &VAO);
-	glDeleteBuffers(1, &VBO);
 	glfwTerminate(); // 释放资源
 
 	return 0;
