@@ -150,6 +150,23 @@ LookAt矩阵
 多光源实操
 */
 
+/*
+深度缓冲中的值为0~1
+深度测试，可以调整：
+	比较运算符
+	只读属性
+对于透视投影，精度是非线性的，越近精度越高
+对于正交投影，精度是线性的
+	*/
+
+/*
+模板测试可以设置：
+	是否启用
+	清空缓冲
+	位与掩码
+	将缓冲中的值和一个测试值进行比较，比较的操作符可以设，比较前可以将两个值与一个掩码位与
+	根据模板测试和深度测试是否通过指定特定的缓冲更新操作
+*/
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
 void processInput(GLFWwindow* window);
 void mouse_callback(GLFWwindow* window, double x, double y);
@@ -161,11 +178,10 @@ int width = 1200, height = 900;
 double prex = width / 2;
 double prey = height / 2;
 double mouse_speed = 0.05;
-double pitch = 0, yaw = -90;
 float fov = 45.f;
-glm::vec3 cam_front;
-Camera cam;
+Camera cam(glm::vec3(0, 0, 6), glm::vec3(0, 1, 0), -90, 0);
 glm::vec3 light_pos(1.2f, 1.f, 2.f);
+float delta_t = 0, cur_t = 0, pre_t = 0;
 
 
 int main() {
@@ -200,16 +216,89 @@ int main() {
 
 	// 最终的屏幕空间
 	glViewport(0, 0, window_width, window_height);
+	float cubeVertices[] = {
+		// positions          // texture Coords
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 0.0f,
 
-	Shader shader("shaders/shader_assimp.vt", "shaders/shader_assimp.fr");
-	Model nano("../models/nanosuit/nanosuit.obj");
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 1.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f, -0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f, -0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f, -0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f, -0.5f, -0.5f,  0.0f, 1.0f,
+
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f,
+		 0.5f,  0.5f, -0.5f,  1.0f, 1.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		 0.5f,  0.5f,  0.5f,  1.0f, 0.0f,
+		-0.5f,  0.5f,  0.5f,  0.0f, 0.0f,
+		-0.5f,  0.5f, -0.5f,  0.0f, 1.0f
+	};
+	float planeVertices[] = {
+		// positions          // texture Coords (note we set these higher than 1 (together with GL_REPEAT as texture wrapping mode). this will cause the floor texture to repeat)
+		 5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+		-5.0f, -0.5f,  5.0f,  0.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+
+		 5.0f, -0.5f,  5.0f,  2.0f, 0.0f,
+		-5.0f, -0.5f, -5.0f,  0.0f, 2.0f,
+		 5.0f, -0.5f, -5.0f,  2.0f, 2.0f
+	};
+
+	Shader shader("shaders/shader_zbfr.vt", "shaders/shader_zbfr.fr");
+
+	unsigned int cubeVAO, cubeVBO;
+	glGenBuffers(1, &cubeVBO);
+	glGenVertexArrays(1, &cubeVAO);
+	glBindVertexArray(cubeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, cubeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof cubeVertices, &cubeVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	unsigned int planeVAO, planeVBO;
+	glGenBuffers(1, &planeVBO);
+	glGenVertexArrays(1, &planeVAO);
+	glBindVertexArray(planeVAO);
+	glBindBuffer(GL_ARRAY_BUFFER, planeVBO);
+	glBufferData(GL_ARRAY_BUFFER, sizeof planeVertices, &planeVertices, GL_STATIC_DRAW);
+	glEnableVertexAttribArray(0);
+	glVertexAttribPointer(0, 3, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)0);
+	glEnableVertexAttribArray(1);
+	glVertexAttribPointer(1, 2, GL_FLOAT, GL_FALSE, 5 * sizeof(float), (void*)(3 * sizeof(float)));
+
+	unsigned int cubeTexture = loadTexture("../textures/metal.jpg");
+	unsigned int floorTexture = loadTexture("../textures/marble.jpg");
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
-
-	cam.Position = glm::vec3(0, 0, 6);
-	cam.Front.z = -1;
-	cam.Up = glm::vec3(0, 1, 0);
-	float delta_t = 0, cur_t = 0, pre_t = 0;
 
 	// Render Loop，不断接受输入并绘制------------------------------------------
 	glEnable(GL_DEPTH_TEST);
@@ -221,7 +310,7 @@ int main() {
 		processInput(window);
 
 		// 渲染指令
-		glClearColor(0.01f, 0.01f, 0.01f, 0.1f); // 清空屏幕颜色
+		glClearColor(0.1f, 0.1f, 0.1f, 0.1f); // 清空屏幕颜色
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 		shader.use();
@@ -229,34 +318,39 @@ int main() {
 		cur_t = glfwGetTime();
 		delta_t = cur_t - pre_t;
 		pre_t = cur_t;
-		if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::FORWARD, delta_t);
-		else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::BACKWARD, delta_t);
-		else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::LEFT, delta_t);
-		else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::RIGHT, delta_t);
-		else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::UP, delta_t);
-		else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
-			cam.ProcessKeyboard(Camera_Movement::DOWN, delta_t);
+
 		glm::mat4 v = cam.GetViewMatrix();
 		glm::mat4 p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
 		glm::mat4 m = glm::mat4(1.0f);
-		m = glm::translate(m, glm::vec3(0.f, -0.5f, 0.f));
-		m = glm::scale(m, glm::vec3(0.2f, 0.2f, 0.2f));
-
 		shader.set_mat4("p", p);
 		shader.set_mat4("v", v);
+
+		glBindVertexArray(cubeVAO);
+		glActiveTexture(GL_TEXTURE0);
+		glBindTexture(GL_TEXTURE_2D, cubeTexture);
+		m = glm::translate(m, glm::vec3(-1.f, 0.f, -1.f));
 		shader.set_mat4("m", m);
-		nano.Draw(shader);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+		m = glm::mat4(1.0f);
+		m = glm::translate(m, glm::vec3(2.f, 0.f, 0.f));
+		shader.set_mat4("m", m);
+		glDrawArrays(GL_TRIANGLES, 0, 36);
+
+		glBindVertexArray(planeVAO);
+		glBindTexture(GL_TEXTURE_2D, floorTexture);
+		m = glm::mat4(1.0f);
+		shader.set_mat4("m", m);
+		glDrawArrays(GL_TRIANGLES, 0, 6);
 
 		// 双缓冲：一个用以保持显示，另一个储存当前正在渲染的值
 		glfwSwapBuffers(window); // 绘制缓冲
 		glfwPollEvents(); // 检查有没有事件发生
 
 	}
+	glDeleteVertexArrays(1, &cubeVAO);
+	glDeleteVertexArrays(1, &planeVAO);
+	glDeleteBuffers(1, &cubeVBO);
+	glDeleteBuffers(1, &planeVBO);
 	glfwTerminate(); // 释放资源
 
 	return 0;
@@ -271,6 +365,19 @@ void processInput(GLFWwindow* window)
 {
 	if (glfwGetKey(window, GLFW_KEY_ESCAPE) == GLFW_PRESS)
 		glfwSetWindowShouldClose(window, true);
+
+	if (glfwGetKey(window, GLFW_KEY_W) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::FORWARD, delta_t);
+	else if (glfwGetKey(window, GLFW_KEY_S) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::BACKWARD, delta_t);
+	else if (glfwGetKey(window, GLFW_KEY_A) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::LEFT, delta_t);
+	else if (glfwGetKey(window, GLFW_KEY_D) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::RIGHT, delta_t);
+	else if (glfwGetKey(window, GLFW_KEY_E) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::UP, delta_t);
+	else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
+		cam.ProcessKeyboard(Camera_Movement::DOWN, delta_t);
 }
 
 void mouse_callback(GLFWwindow* window, double x, double y)
