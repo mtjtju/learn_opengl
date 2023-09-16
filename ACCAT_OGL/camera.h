@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #ifndef CAMERA_H
 #define CAMERA_H
@@ -140,8 +140,8 @@ protected:
 };
 
 /*
-Ïà»ú¶ÔÆëµ½xyzO
-ÏÈÒÆ¶¯ºóĞı×ª
+ç›¸æœºå¯¹é½åˆ°xyzO
+å…ˆç§»åŠ¨åæ—‹è½¬
 */
 glm::mat4 my_lookat(glm::vec3 pos, glm::vec3 center, glm::vec3 up)
 {

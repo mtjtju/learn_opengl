@@ -1,124 +1,48 @@
 #version 330 core
 
-struct Material {
-	sampler2D diff;
-	sampler2D spec;
-	sampler2D emi;
-	float gloss;
-};
-
-struct Light {
-	vec3 amb;
-	vec3 diff;
-	vec3 spec;
-	vec3 pos;
-};
-
-struct Light_para {
-	vec3 amb;
-	vec3 diff;
-	vec3 spec;
-	vec3 dir;
-};
-
-struct Light_spot {
-	vec3 amb;
-	vec3 diff;
-	vec3 spec;
-	vec3 pos;
-	vec3 dir;
-	float inner_theta;
-	float outer_theta;
-};
+uniform float gridGap;
 
 out vec4 frag_clr;
-in vec3 normal;
-in vec3 frag_pos;
-in vec2 uv;
+in vec3 nearPoint;
+in vec3 farPoint;
+in mat4 matP;
+in mat4 matV;
 
-uniform vec3 cam_pos;
-uniform Material obj_mt;
+float computeDepth(vec3 pos) {
+    vec4 clip_space_pos = matP * matV * vec4(pos.xyz, 1.0);
+    return (clip_space_pos.z / clip_space_pos.w) * 0.5 + 0.5;
+}
 
-const int LIGHT_CNT = 1;
-const int LIGHT_PARA_CNT = 0;
-const int LIGHT_SPOT_CNT = 1;
-const int light_arr_size = max(1, LIGHT_CNT);
-const int light_para_arr_size = max(1, LIGHT_PARA_CNT);
-const int light_spot_arr_size = max(1, LIGHT_SPOT_CNT);
-uniform Light light[light_arr_size];
-uniform Light_para light_para[light_para_arr_size];
-uniform Light_spot light_spot[light_spot_arr_size];
-
-vec3 calc_light_para(Light_para light_para, vec3 nrm, vec3 cam_dir);
-vec3 calc_light(Light light, vec3 normal, vec3 cam_dir, vec3 frag_pos);
-vec3 calc_light_spot(Light_spot light, vec3 normal, vec3 cam_dir, vec3 frag_pos);
-
+vec4 grid(vec3 fragPos3D, vec3 lineColor, float scale, float lineWidth) {
+	// scale越大网格越密
+    vec2 coord = fragPos3D.xz * scale; 
+	
+	// 视角越倾斜derivative越大 
+    vec2 derivative = fwidth(coord);
+	
+	// derivative越大grid值越小，函数min(line, 1)小于1的范围越大
+    vec2 grid = abs(fract(coord - 0.5) - 0.5) / (derivative * lineWidth);
+    float line = min(grid.x, grid.y);
+	vec4 color = vec4(lineColor.xyz, 1.0 - min(line, 1.0));
+    
+	float xval = abs(coord.x) / (min(derivative.x, 1) * lineWidth);
+	if (xval < 1.0) color.z = 1.0 * (1-min(xval, 1));
+	
+	float zval = abs(coord.y) / (min(derivative.y, 1) * lineWidth);
+	if (zval < 1.0) color.x = 1.0 * (1-min(zval, 1));
+		
+    return color;
+}
+ 
 void main () {
-	vec3 cam_dir = normalize(cam_pos - frag_pos);
-	vec3 res = vec3(0,0,0);
-	for (int i = 0; i < LIGHT_CNT; i++)
-		res = res + calc_light(light[i], normal, cam_dir, frag_pos);
-	for (int i = 0; i < LIGHT_PARA_CNT; i++)
-		res = res + calc_light_para(light_para[i], normal, cam_dir);
-	for (int i = 0; i < LIGHT_SPOT_CNT; i++)
-		res = res + calc_light_spot(light_spot[i], normal, cam_dir, frag_pos);
-
-	frag_clr = vec4(res, 1.0f);
-}
-
-vec3 calc_light_para(Light_para light, vec3 normal, vec3 cam_dir)
-{
-	vec3 diff_clr = texture(obj_mt.diff, uv).rgb;
-	vec3 amb = light.amb * diff_clr;
-
-	vec3 nrm = normalize(normal);
-	float diff_scale = max(dot(light.dir, nrm), 0.f);
-	vec3 diff = diff_scale * diff_clr * light.diff;
-
-	vec3 h = normalize(cam_dir + light.dir);
-	float spec_scale = pow(max(dot(nrm, h), 0.f), obj_mt.gloss);
-	vec3 spec_clr = texture(obj_mt.spec, uv).rgb;
-	vec3 spec = spec_scale * spec_clr * light.spec;
-
-	return amb + diff + spec;
-}
-
-vec3 calc_light(Light light, vec3 normal, vec3 cam_dir, vec3 frag_pos)
-{
-	vec3 diff_clr = texture(obj_mt.diff, uv).rgb;
-	vec3 amb = light.amb * diff_clr;
-
-	vec3 nrm = normalize(normal);
-	vec3 light_dir = normalize(light.pos - frag_pos);
-	float diff_scale = max(dot(light_dir, nrm), 0.f);
-	vec3 diff = diff_scale * diff_clr * light.diff;
-
-	vec3 h = normalize(cam_dir + light_dir);
-	float spec_scale = pow(max(dot(nrm, h), 0.f), obj_mt.gloss);
-	vec3 spec_clr = texture(obj_mt.spec, uv).rgb;
-	vec3 spec = spec_scale * spec_clr * light.spec;
-	return amb+diff+spec;
-}
-
-vec3 calc_light_spot(Light_spot light, vec3 normal, vec3 cam_dir, vec3 frag_pos)
-{
-	vec3 diff_clr = texture(obj_mt.diff, uv).rgb;
-	vec3 amb = light.amb * diff_clr;
-
-	vec3 light_dir = normalize(light.pos - frag_pos);
-	float a = light.inner_theta;
-	float b = light.outer_theta;
-	float c = dot(light.pos, light_dir);
-	float light_strength = min(1.f, max(0.f, (c-b)/(a-b)));
-
-	vec3 nrm = normalize(normal);
-	float diff_scale = max(dot(light_dir, nrm), 0.f);
-	vec3 diff = light_strength * diff_scale * diff_clr * light.diff;
-
-	vec3 h = normalize(cam_dir + light_dir);
-	float spec_scale = pow(max(dot(nrm, h), 0.f), obj_mt.gloss);
-	vec3 spec_clr = texture(obj_mt.spec, uv).rgb;
-	vec3 spec = light_strength * spec_scale * spec_clr * light.spec;
-
-	return amb + diff + spec;
+	float t = -nearPoint.y / (farPoint.y - nearPoint.y);
+	vec3 fragPos3D = nearPoint + t * (farPoint - nearPoint);
+	float clipZ =  pow(computeDepth(fragPos3D), 150);
+	
+	float gridGapPos = gridGap <= 0 ? 1 : gridGap;
+	float mainGridScale = 1 / gridGapPos;
+	float subGridScale = mainGridScale * 5;
+	vec4 clr0 = grid(fragPos3D, vec3(0.2, 0.2, 0.2), 5, 1) * float(t > 0) * (1 - clipZ);
+	vec4 clr1 = grid(fragPos3D, vec3(0.4, 0.4, 0.4), 1, 1) * float(t > 0) * (1 - clipZ);
+	frag_clr = clr1.w > 0.0  ? clr1 : clr0;
 }

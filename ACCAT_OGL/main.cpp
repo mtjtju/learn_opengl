@@ -1,4 +1,4 @@
-#include <iostream>
+ï»¿#include <iostream>
 #include <glad/glad.h>
 #include <glfw3.h>
 #include <glm/glm.hpp>
@@ -11,48 +11,48 @@
 #include "stb_image.h"
 
 using std::cout;
-using std::endl;
+using std::endl; 
 
 /*
 ACCAT!~!!!!
 VAO
 VBO
 EBO or IBO
-Vertex Shader ¶¥µã×ÅÉ«Æ÷
-	in: Ò»¸ö¶¥µã
-	out:Ò»¸ö¶¥µã£¬´¦ÀíºóµÄÊôÐÔ
-Primitive Assembly Í¼Ôª×°Åä
-	in: ¶¥µã×ÅÉ«Æ÷²úÉúµÄ¶¥µã
-	out:ÌØ¶¨µÄÍ¼Ôª£¨Ä³ÖÖÐÎ×´£¬¿ÉÒÔÊÇµã¡¢Ïß»òÈý½ÇÐÎµÈ£©
-Geometry Shader ¼¸ºÎ×ÅÉ«Æ÷
-	in: Í¼Ôª
-	out:ÐÂµÄÍ¼Ôª
-Rasterization Stage ¹âÕ¤»¯
-	in: Í¼Ôª
-	out:²Ã¼ôºóµÄÆ¬Ôª£¨äÖÈ¾Ò»¸öÏñËØËùÐèµÄÊý¾Ý£©
+Vertex Shader é¡¶ç‚¹ç€è‰²å™¨
+	in: ä¸€ä¸ªé¡¶ç‚¹
+	out:ä¸€ä¸ªé¡¶ç‚¹ï¼Œå¤„ç†åŽçš„å±žæ€§
+Primitive Assembly å›¾å…ƒè£…é…
+	in: é¡¶ç‚¹ç€è‰²å™¨äº§ç”Ÿçš„é¡¶ç‚¹
+	out:ç‰¹å®šçš„å›¾å…ƒï¼ˆæŸç§å½¢çŠ¶ï¼Œå¯ä»¥æ˜¯ç‚¹ã€çº¿æˆ–ä¸‰è§’å½¢ç­‰ï¼‰
+Geometry Shader å‡ ä½•ç€è‰²å™¨
+	in: å›¾å…ƒ
+	out:æ–°çš„å›¾å…ƒ
+Rasterization Stage å…‰æ …åŒ–
+	in: å›¾å…ƒ
+	out:è£å‰ªåŽçš„ç‰‡å…ƒï¼ˆæ¸²æŸ“ä¸€ä¸ªåƒç´ æ‰€éœ€çš„æ•°æ®ï¼‰
 Alpha test, blending
 
-textureÌ«Ð¡---texture magnifyÎÊÌâ---Ë«ÏßÐÔ²åÖµ
-textureÌ«´ó---texture minifyÎÊÌâ----mipmap, ÈýÏßÐÔ²åÖµ
+textureå¤ªå°---texture magnifyé—®é¢˜---åŒçº¿æ€§æ’å€¼
+textureå¤ªå¤§---texture minifyé—®é¢˜----mipmap, ä¸‰çº¿æ€§æ’å€¼
 
-texture unit ÎÆÀíµ¥Ôª
-	Ïàµ±ÓÚÖ¸Ïò¾ßÌåÎÆÀíÊý¾ÝµÄÖ¸Õë£¬oglÓÐ16¸öÒÔÉÏÎÆÀíµ¥Ôª£¬Ò»¸ö²ÉÑùÆ÷¿ÉÒÔÖ¸ÏòÆäÖÐÒ»¸ö
+texture unit çº¹ç†å•å…ƒ
+	ç›¸å½“äºŽæŒ‡å‘å…·ä½“çº¹ç†æ•°æ®çš„æŒ‡é’ˆï¼Œoglæœ‰16ä¸ªä»¥ä¸Šçº¹ç†å•å…ƒï¼Œä¸€ä¸ªé‡‡æ ·å™¨å¯ä»¥æŒ‡å‘å…¶ä¸­ä¸€ä¸ª
 
-ÎÆÀí
-	Á·Ï°£º
-		ÐÞ¸ÄÆ¬¶Î×ÅÉ«Æ÷£¬½öÈÃÐ¦Á³Í¼°¸³¯ÁíÒ»¸ö·½Ïò¿´£¬²Î¿¼½â´ð
+çº¹ç†
+	ç»ƒä¹ ï¼š
+		ä¿®æ”¹ç‰‡æ®µç€è‰²å™¨ï¼Œä»…è®©ç¬‘è„¸å›¾æ¡ˆæœå¦ä¸€ä¸ªæ–¹å‘çœ‹ï¼Œå‚è€ƒè§£ç­”
 			in fshader, u = 1.0 - u
-		³¢ÊÔÓÃ²»Í¬µÄÎÆÀí»·ÈÆ·½Ê½£¬Éè¶¨Ò»¸ö´Ó0.0fµ½2.0f·¶Î§ÄÚµÄ£¨¶ø²»ÊÇÔ­À´µÄ0.0fµ½1.0f£©ÎÆÀí×ø±ê¡£ÊÔÊÔ¿´ÄÜ²»ÄÜÔÚÏä×ÓµÄ½ÇÂä·ÅÖÃ4¸öÐ¦Á³£º²Î¿¼½â´ð£¬½á¹û¡£¼ÇµÃÒ»¶¨ÒªÊÔÊÔÆäËüµÄ»·ÈÆ·½Ê½¡£
+		å°è¯•ç”¨ä¸åŒçš„çº¹ç†çŽ¯ç»•æ–¹å¼ï¼Œè®¾å®šä¸€ä¸ªä»Ž0.0fåˆ°2.0fèŒƒå›´å†…çš„ï¼ˆè€Œä¸æ˜¯åŽŸæ¥çš„0.0fåˆ°1.0fï¼‰çº¹ç†åæ ‡ã€‚è¯•è¯•çœ‹èƒ½ä¸èƒ½åœ¨ç®±å­çš„è§’è½æ”¾ç½®4ä¸ªç¬‘è„¸ï¼šå‚è€ƒè§£ç­”ï¼Œç»“æžœã€‚è®°å¾—ä¸€å®šè¦è¯•è¯•å…¶å®ƒçš„çŽ¯ç»•æ–¹å¼ã€‚
 			in vertex data, double uv
-		³¢ÊÔÔÚ¾ØÐÎÉÏÖ»ÏÔÊ¾ÎÆÀíÍ¼ÏñµÄÖÐ¼äÒ»²¿·Ö£¬ÐÞ¸ÄÎÆÀí×ø±ê£¬´ïµ½ÄÜ¿´¼ûµ¥¸öµÄÏñËØµÄÐ§¹û¡£³¢ÊÔÊ¹ÓÃGL_NEARESTµÄÎÆÀí¹ýÂË·½Ê½ÈÃÏñËØÏÔÊ¾µÃ¸üÇåÎú£º²Î¿¼½â´ð
+		å°è¯•åœ¨çŸ©å½¢ä¸Šåªæ˜¾ç¤ºçº¹ç†å›¾åƒçš„ä¸­é—´ä¸€éƒ¨åˆ†ï¼Œä¿®æ”¹çº¹ç†åæ ‡ï¼Œè¾¾åˆ°èƒ½çœ‹è§å•ä¸ªçš„åƒç´ çš„æ•ˆæžœã€‚å°è¯•ä½¿ç”¨GL_NEARESTçš„çº¹ç†è¿‡æ»¤æ–¹å¼è®©åƒç´ æ˜¾ç¤ºå¾—æ›´æ¸…æ™°ï¼šå‚è€ƒè§£ç­”
 			in vertex data, uv *= 0.05
-		Ê¹ÓÃÒ»¸öuniform±äÁ¿×÷Îªmixº¯ÊýµÄµÚÈý¸ö²ÎÊýÀ´¸Ä±äÁ½¸öÎÆÀí¿É¼û¶È£¬Ê¹ÓÃÉÏºÍÏÂ¼üÀ´¸Ä±äÏä×Ó»òÐ¦Á³µÄ¿É¼û¶È£º²Î¿¼½â´ð¡£
-			GLFW_PRESS¼ì²â°´¼üÊÂ¼þ£¬²½³¤ÉèÐ¡Ò»µã¾Í²»»áÍ»±ä
+		ä½¿ç”¨ä¸€ä¸ªuniformå˜é‡ä½œä¸ºmixå‡½æ•°çš„ç¬¬ä¸‰ä¸ªå‚æ•°æ¥æ”¹å˜ä¸¤ä¸ªçº¹ç†å¯è§åº¦ï¼Œä½¿ç”¨ä¸Šå’Œä¸‹é”®æ¥æ”¹å˜ç®±å­æˆ–ç¬‘è„¸çš„å¯è§åº¦ï¼šå‚è€ƒè§£ç­”ã€‚
+			GLFW_PRESSæ£€æµ‹æŒ‰é”®äº‹ä»¶ï¼Œæ­¥é•¿è®¾å°ä¸€ç‚¹å°±ä¸ä¼šçªå˜
 
-GLSLÓëÏßÐÔ´úÊý
-	Á½¸öÏòÁ¿Ïà³ËÊÇ¶ÔÓ¦ÔªËØÏà³Ë
-opengl glm¿âÓëÏßÐÔ´úÊý
-	ÏòÁ¿¡¢¾ØÕóºÍÊý×ÖµÄ+-*³ý£¬¶¼×÷ÓÃÓÚÃ¿¸öÔªËØ
+GLSLä¸Žçº¿æ€§ä»£æ•°
+	ä¸¤ä¸ªå‘é‡ç›¸ä¹˜æ˜¯å¯¹åº”å…ƒç´ ç›¸ä¹˜
+opengl glmåº“ä¸Žçº¿æ€§ä»£æ•°
+	å‘é‡ã€çŸ©é˜µå’Œæ•°å­—çš„+-*é™¤ï¼Œéƒ½ä½œç”¨äºŽæ¯ä¸ªå…ƒç´ 
 	glm::vec4 vec(1, 0, 0, 1);
 	glm::mat4 trans; // identity matrix
 	trans = glm::translate(trans, glm::vec3(1, 1, 0));
@@ -61,9 +61,9 @@ opengl glm¿âÓëÏßÐÔ´úÊý
 
 camera
 	lookat(pos, target, up)
-	Å·À­½Ç£º
-		pitch¸©Ñö½Çx£¬yawÆ«º½½Çy£¬roll¹ö×ª½Çz
-		Í¨¹ýÅ·À­½Ç¼ÆËãÏà»ú·½ÏòÏòÁ¿£º
+	æ¬§æ‹‰è§’ï¼š
+		pitchä¿¯ä»°è§’xï¼Œyawåèˆªè§’yï¼Œrollæ»šè½¬è§’z
+		é€šè¿‡æ¬§æ‹‰è§’è®¡ç®—ç›¸æœºæ–¹å‘å‘é‡ï¼š
 			y = sin(pitch)
 			x = cos(pitch) * cos(Yaw)
 			z = cos(pitch) * sin(Yaw)
@@ -71,18 +71,18 @@ camera
 
 /*
 Shader
-	in out: ·Ö±ð¶¨ÒåÁËÊäÈëºÍÊä³ö
-	fragment shader: Êä³ö±ØÐëÊÇvec4; ¿ÉÒÔ¶¨ÒåÊäÈë£¬´Ó¶¥µã×ÅÉ«Æ÷ÄÃÊý¾Ý
-	vertex shader: ´Ó¶¥µãÊý¾ÝÖ±½Ó¶ÁÈ¡ÊäÈë£¬²¢ÒÀ¾Ýlayout½âÊÍÊý¾Ý; ¿ÉÒÔ¶¨ÒåÊä³ö¡£
-	uniform: ¿ÉÒÔÔÚ×ÅÉ«Æ÷ÖÐÉùÃ÷Ò»¸öuniform±äÁ¿£¬ÔÚÖ÷³ÌÐòÖÐ¶¨Òå¡£×÷ÓÃÀàËÆÓÚÈ«¾Ö±äÁ¿¡£
+	in out: åˆ†åˆ«å®šä¹‰äº†è¾“å…¥å’Œè¾“å‡º
+	fragment shader: è¾“å‡ºå¿…é¡»æ˜¯vec4; å¯ä»¥å®šä¹‰è¾“å…¥ï¼Œä»Žé¡¶ç‚¹ç€è‰²å™¨æ‹¿æ•°æ®
+	vertex shader: ä»Žé¡¶ç‚¹æ•°æ®ç›´æŽ¥è¯»å–è¾“å…¥ï¼Œå¹¶ä¾æ®layoutè§£é‡Šæ•°æ®; å¯ä»¥å®šä¹‰è¾“å‡ºã€‚
+	uniform: å¯ä»¥åœ¨ç€è‰²å™¨ä¸­å£°æ˜Žä¸€ä¸ªuniformå˜é‡ï¼Œåœ¨ä¸»ç¨‹åºä¸­å®šä¹‰ã€‚ä½œç”¨ç±»ä¼¼äºŽå…¨å±€å˜é‡ã€‚
 */
 
 /*
 glfw
-»Øµ÷º¯Êý
+å›žè°ƒå‡½æ•°
 	glfwSetxxxCallback(window, fun_ptr)
-	Õâ¸öº¯ÊýÊÇglfwÉùÃ÷µÄ, ÓÃ»§ÊµÏÖ
-Êó±êÒþ²ØÄ£Ê½
+	è¿™ä¸ªå‡½æ•°æ˜¯glfwå£°æ˜Žçš„, ç”¨æˆ·å®žçŽ°
+é¼ æ ‡éšè—æ¨¡å¼
 	glfwSetInputMode(window, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
 	
 */
@@ -91,57 +91,57 @@ glfw
 Words
 OpenGL
 GLAD
-ÊÓ¿Ú
-Í¼ÐÎ¹ÜÏß
-¶¥µã×ÅÉ«Æ÷:		Êä³öÎª²Ã¼ô¿Õ¼ä
-Æ¬¶Î×ÅÉ«Æ÷:		ÆÁÄ»¿Õ¼äÊÇÊäÈë
-±ê×¼»¯Éè±¸×ø±ê
-¶¥µã»º³å¶ÔÏó
-¶¥µãÊý×é¶ÔÏó
-ÔªËØ»º³å¶ÔÏó
+è§†å£
+å›¾å½¢ç®¡çº¿
+é¡¶ç‚¹ç€è‰²å™¨:		è¾“å‡ºä¸ºè£å‰ªç©ºé—´
+ç‰‡æ®µç€è‰²å™¨:		å±å¹•ç©ºé—´æ˜¯è¾“å…¥
+æ ‡å‡†åŒ–è®¾å¤‡åæ ‡
+é¡¶ç‚¹ç¼“å†²å¯¹è±¡
+é¡¶ç‚¹æ•°ç»„å¯¹è±¡
+å…ƒç´ ç¼“å†²å¯¹è±¡
 Uniform
 GLSL
-ÎÆÀí¹ýÂË:		Ë«ÏßÐÔºÍÈýÏßÐÔ
-¶à¼¶½¥Ô¶ÎÆÀí
+çº¹ç†è¿‡æ»¤:		åŒçº¿æ€§å’Œä¸‰çº¿æ€§
+å¤šçº§æ¸è¿œçº¹ç†
 GLM
-¾Ö²¿¿Õ¼ä
-²Ã¼ô¿Õ¼ä:		vshaderµÄÊä³ö£¬w¿ÉÄÜ²»ÊÇ1
-ÆÁÄ»¿Õ¼ä
-LookAt¾ØÕó
-Å·À­½Ç
+å±€éƒ¨ç©ºé—´
+è£å‰ªç©ºé—´:		vshaderçš„è¾“å‡ºï¼Œwå¯èƒ½ä¸æ˜¯1
+å±å¹•ç©ºé—´
+LookAtçŸ©é˜µ
+æ¬§æ‹‰è§’
 */
 
 /*
-Ò»ÖÖÁ÷³ÌÀí½â·½Ê½£º
-	GLÏñÒ»¸ö´ó¶ÔÏóÊµÀý£¬ÓÐÒ»ÏµÁÐÊôÐÔºÍº¯Êý
-	Ò»°ãÊÇÏÈÉùÃ÷Ò»Ð©¶ÀÁ¢¶ÔÏó£¬ÔÚ¸³Öµ¸øGLµÄÊôÐÔ£¬ÔÙµ÷ÓÃGLµÄÒ»Ð©º¯Êý£º
-	step1: glGenxxx		ÉùÃ÷ptr
-	step2: glBindxxx	ptr¸³Öµ¸øGL.x
+ä¸€ç§æµç¨‹ç†è§£æ–¹å¼ï¼š
+	GLåƒä¸€ä¸ªå¤§å¯¹è±¡å®žä¾‹ï¼Œæœ‰ä¸€ç³»åˆ—å±žæ€§å’Œå‡½æ•°
+	ä¸€èˆ¬æ˜¯å…ˆå£°æ˜Žä¸€äº›ç‹¬ç«‹å¯¹è±¡ï¼Œåœ¨èµ‹å€¼ç»™GLçš„å±žæ€§ï¼Œå†è°ƒç”¨GLçš„ä¸€äº›å‡½æ•°ï¼š
+	step1: glGenxxx		å£°æ˜Žptr
+	step2: glBindxxx	ptrèµ‹å€¼ç»™GL.x
 	step3: glBufferData,glDraw....
-						¶ÔGL×öÒ»Ð©ÊÂÇé,Ò²¾ÍÊÇ¶ÔGL.x×öÒ»Ð©ÊÂ,Ò²¾ÍÊÇ¶Ôptr×öÒ»Ð©ÊÂ
+						å¯¹GLåšä¸€äº›äº‹æƒ…,ä¹Ÿå°±æ˜¯å¯¹GL.xåšä¸€äº›äº‹,ä¹Ÿå°±æ˜¯å¯¹ptråšä¸€äº›äº‹
 */
 
 /*
-Æ½ÐÐ¹â£ºdirection
-µã¹âÔ´£ºÇ¿¶ÈÏµÊý=1/¾àÀëµÄ¶þ´ÎÊ½£¬<=1.0
-		³ýÁËÎ»ÖÃ»¹ÐèÒªÈý¸öÖµÀ´¶¨Òå£º¶þ´ÎÏî¡¢Ò»´ÎÏîºÍ³£ÊýÏîµÄÏµÊý
-¾Û¹âspotlight:
-		ÓÉÁ½¸ö×¶Ìå¶¨Òå£¬×µÌåÖ®¼ä¹âÇ¿°´ÕÕÓàÏÒÖµ½øÐÐÏßÐÔ²åÖµ0~1
-		²ÎÊý£º
-			Î»ÖÃ
-			·½Ïò
-			ÄÚÇÐ¹â½Ç£¨×¶Ìå½ÇµÄÒ»°ë£¬Ò»°ãÊÇÓàÏÒÖµ£©
-			ÍâÇÐ¹â½Ç£¨×¶Ìå½ÇµÄÒ»°ë£¬Ò»°ãÊÇÓàÏÒÖµ£©
+å¹³è¡Œå…‰ï¼šdirection
+ç‚¹å…‰æºï¼šå¼ºåº¦ç³»æ•°=1/è·ç¦»çš„äºŒæ¬¡å¼ï¼Œ<=1.0
+		é™¤äº†ä½ç½®è¿˜éœ€è¦ä¸‰ä¸ªå€¼æ¥å®šä¹‰ï¼šäºŒæ¬¡é¡¹ã€ä¸€æ¬¡é¡¹å’Œå¸¸æ•°é¡¹çš„ç³»æ•°
+èšå…‰spotlight:
+		ç”±ä¸¤ä¸ªé”¥ä½“å®šä¹‰ï¼Œæ¤Žä½“ä¹‹é—´å…‰å¼ºæŒ‰ç…§ä½™å¼¦å€¼è¿›è¡Œçº¿æ€§æ’å€¼0~1
+		å‚æ•°ï¼š
+			ä½ç½®
+			æ–¹å‘
+			å†…åˆ‡å…‰è§’ï¼ˆé”¥ä½“è§’çš„ä¸€åŠï¼Œä¸€èˆ¬æ˜¯ä½™å¼¦å€¼ï¼‰
+			å¤–åˆ‡å…‰è§’ï¼ˆé”¥ä½“è§’çš„ä¸€åŠï¼Œä¸€èˆ¬æ˜¯ä½™å¼¦å€¼ï¼‰
 
-½á¹¹ÌåÀàÐÍµÄuniform¸³Öµ:
-	¸ù¾Ý³ÉÔ±±äÁ¿µÄÀàÐÍ´«¾ßÌåÊýÖµ£¬Ãû³Æ²ÎÊýÎª ½á¹¹Ìå±äÁ¿Ãû+'.'+³ÉÔ±±äÁ¿Ãû
-½á¹¹ÌåÀàÐÍÊý×éµÄuniform¸³Öµ:
-	¸ù¾Ý³ÉÔ±±äÁ¿µÄÀàÐÍ´«¾ßÌåÊýÖµ£¬Ãû³Æ²ÎÊýÎª ½á¹¹ÌåÊý×é±äÁ¿Ãû+[idx]+'.'+³ÉÔ±±äÁ¿Ãû
+ç»“æž„ä½“ç±»åž‹çš„uniformèµ‹å€¼:
+	æ ¹æ®æˆå‘˜å˜é‡çš„ç±»åž‹ä¼ å…·ä½“æ•°å€¼ï¼Œåç§°å‚æ•°ä¸º ç»“æž„ä½“å˜é‡å+'.'+æˆå‘˜å˜é‡å
+ç»“æž„ä½“ç±»åž‹æ•°ç»„çš„uniformèµ‹å€¼:
+	æ ¹æ®æˆå‘˜å˜é‡çš„ç±»åž‹ä¼ å…·ä½“æ•°å€¼ï¼Œåç§°å‚æ•°ä¸º ç»“æž„ä½“æ•°ç»„å˜é‡å+[idx]+'.'+æˆå‘˜å˜é‡å
 
 */
 
 /*
-¶à¹âÔ´Êµ²Ù
+å¤šå…‰æºå®žæ“
 */
 
 void framebuffer_size_callback(GLFWwindow* window, int width, int height);
@@ -163,12 +163,12 @@ glm::vec3 light_pos(1.2f, 1.f, 2.f);
 
 
 int main() {
-	// ³õÊ¼»¯------------------------------------------------------------
+	// åˆå§‹åŒ–------------------------------------------------------------
 	glfwInit(); // init glfw
 	// (setting option, val)
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MAJOR, 3);
 	glfwWindowHint(GLFW_CONTEXT_VERSION_MINOR, 3);
-	// ºÍÐÂÄ£Ê½
+	// å’Œæ–°æ¨¡å¼
 	glfwWindowHint(GLFW_OPENGL_PROFILE, GLFW_OPENGL_CORE_PROFILE);
 
 	int window_width = width, window_height = height;
@@ -180,7 +180,7 @@ int main() {
 		return -1;
 	}
 
-	// ½«´°¿ÚÉèÖÃÎªµ±Ç°Ïß³ÌµÄÖ÷ÉÏÏÂÎÄ
+	// å°†çª—å£è®¾ç½®ä¸ºå½“å‰çº¿ç¨‹çš„ä¸»ä¸Šä¸‹æ–‡
 	glfwMakeContextCurrent(window);
 
 	if (!gladLoadGLLoader((GLADloadproc)glfwGetProcAddress))
@@ -189,78 +189,31 @@ int main() {
 		return -1;
 	}
 
-	// ×¢²áµ÷Õû´°¿Ú´óÐ¡Ê±µ÷ÕûÊÓ¿Ú´óÐ¡µÄ»Øµ÷º¯Êý
+	// æ³¨å†Œè°ƒæ•´çª—å£å¤§å°æ—¶è°ƒæ•´è§†å£å¤§å°çš„å›žè°ƒå‡½æ•°
 	glfwSetFramebufferSizeCallback(window, framebuffer_size_callback);
 
-	// ×îÖÕµÄÆÁÄ»¿Õ¼ä
+	// æœ€ç»ˆçš„å±å¹•ç©ºé—´
 	glViewport(0, 0, window_width, window_height);
 
 	Shader shader_blinnphong("shaders/blinnphong.vt", "shaders/blinnphong.fr");
 	Shader shader_blinnphong_light("shaders/blinnphong_light_obj.vt", "shaders/blinnphong_light_obj.fr");
 
-	// Êý¾Ý´«Êä------------------------------------------------------------
-	// Ä£ÐÍÊäÈë
+	// æ•°æ®ä¼ è¾“------------------------------------------------------------
+	// æ¨¡åž‹è¾“å…¥
 	float vertices[] = {
 		// positions          // normals           // texture coords
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  1.0f, 1.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f,  0.0f, -1.0f,  0.0f, 0.0f,
-
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   1.0f, 1.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f,  0.0f, 1.0f,   0.0f, 0.0f,
-
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f, -0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		-0.5f, -0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f, -1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  0.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  1.0f,  0.0f,  0.0f,  1.0f, 0.0f,
-
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f, -0.5f,  0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f, -0.5f, -0.5f,  0.0f, -1.0f,  0.0f,  0.0f, 1.0f,
-
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f,
-		 0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 1.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		 0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  1.0f, 0.0f,
-		-0.5f,  0.5f,  0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 0.0f,
-		-0.5f,  0.5f, -0.5f,  0.0f,  1.0f,  0.0f,  0.0f, 1.0f
-	};
-	glm::vec3 obj_positions[] = {
-			glm::vec3(0.0f,  0.0f,  0.0f),
-			glm::vec3(2.0f,  5.0f, -15.0f),
-			glm::vec3(-1.5f, -2.2f, -2.5f),
-			glm::vec3(-3.8f, -2.0f, -12.3f),
-			glm::vec3(2.4f, -0.4f, -3.5f),
-			glm::vec3(-1.7f,  3.0f, -7.5f),
-			glm::vec3(1.3f, -2.0f, -2.5f),
-			glm::vec3(1.5f,  2.0f, -2.5f),
-			glm::vec3(1.5f,  0.2f, -1.5f),
-			glm::vec3(-1.3f,  1.0f, -1.5f)
+		-1.f, -1.f, 0.f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f,
+		 1.f, -1.f, 0.f,  0.0f,  0.0f, 1.0f,  1.0f, 0.0f,
+		 1.f,  1.f, 0.f,  0.0f,  0.0f, 1.0f,  1.0f, 1.0f,
+		 1.f,  1.f, 0.f,  0.0f,  0.0f, 1.0f,  1.0f, 1.0f,
+		-1.f,  1.f, 0.f,  0.0f,  0.0f, 1.0f,  0.0f, 1.0f,
+		-1.f, -1.f, 0.f,  0.0f,  0.0f, 1.0f,  0.0f, 0.0f,
 	};
 	unsigned int VAO, VBO;
 
-	// ÀàËÆÓÚÉùÃ÷Ò»¸öÖ¸Õë my_ptr
+	// ç±»ä¼¼äºŽå£°æ˜Žä¸€ä¸ªæŒ‡é’ˆ my_ptr
 	glGenVertexArrays(1, &VAO);
-	glBindVertexArray(VAO); // ÏÈµ÷ÓÃ£¬Ëü»á±£´æºóÃæµÄEBOºÍÊôÐÔÖ¸ÕëµÄÉèÖÃ
+	glBindVertexArray(VAO); // å…ˆè°ƒç”¨ï¼Œå®ƒä¼šä¿å­˜åŽé¢çš„EBOå’Œå±žæ€§æŒ‡é’ˆçš„è®¾ç½®
 
 	glGenBuffers(1, &VBO);
 	glBindBuffer(GL_ARRAY_BUFFER, VBO);
@@ -273,13 +226,7 @@ int main() {
 	glVertexAttribPointer(2, 3, GL_FLOAT, GL_FALSE, 8 * sizeof(float), (void*)(6*sizeof(float)));
 	glEnableVertexAttribArray(2);
 
-	unsigned int textureID = loadTexture("../textures/container2.png");
-	unsigned int texture_spec_ID = loadTexture("../textures/container2_specular.png");
-	unsigned int texture_green_ID = loadTexture("../textures/matrix.jpg");
 	shader_blinnphong.use();
-	shader_blinnphong.set_int("obj_mt.diff", 0);
-	shader_blinnphong.set_int("obj_mt.spec", 1);
-	shader_blinnphong.set_int("obj_mt.emi", 2);
 
 	glPolygonMode(GL_FRONT_AND_BACK, GL_FILL);
 
@@ -288,48 +235,22 @@ int main() {
 	cam.Up = glm::vec3(0, 1, 0);
 	float delta_t = 0, cur_t = 0, pre_t = 0;
 
-	// Render Loop£¬²»¶Ï½ÓÊÜÊäÈë²¢»æÖÆ------------------------------------------
+	// Render Loopï¼Œä¸æ–­æŽ¥å—è¾“å…¥å¹¶ç»˜åˆ¶------------------------------------------
 	glEnable(GL_DEPTH_TEST);
+	glEnable(GL_BLEND); // æ‰“å¼€æ··åˆ
+	glBlendFunc(GL_SRC_ALPHA, GL_ONE); // åŸºäºŽæºè±¡ç´ alphaé€šé“å€¼çš„åŠé€æ˜Žæ··åˆå‡½æ•°
 	glfwSetCursorPosCallback(window, mouse_callback);
 	glfwSetScrollCallback(window, scroll_callback);
-	while (!glfwWindowShouldClose(window)) // ¼ì²é´°¿ÚÓÐÃ»ÓÐ±»ÒªÇóÍË³ö
+	while (!glfwWindowShouldClose(window)) // æ£€æŸ¥çª—å£æœ‰æ²¡æœ‰è¢«è¦æ±‚é€€å‡º
 	{
-		// ÊäÈë
+		// è¾“å…¥
 		processInput(window);
 
-		// äÖÈ¾Ö¸Áî
-		glClearColor(0.01f, 0.01f, 0.01f, 0.1f); // Çå¿ÕÆÁÄ»ÑÕÉ«
+		// æ¸²æŸ“æŒ‡ä»¤
+		glClearColor(0.01f, 0.01f, 0.01f, 0.1f); // æ¸…ç©ºå±å¹•é¢œè‰²
 		glClear(GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT);
 
 		shader_blinnphong.use();
-		shader_blinnphong.set_float("obj_mt.gloss", 64.f);
-		shader_blinnphong.set_vec3("cam_pos", cam.Position);
-		glm::vec3 obj_clr(1.f, 0.5f, 0.3f), light_clr(1.f, 1.f, 1.f);
-		glm::vec3 dim_red(0.3f, 0.0f, 0.0f), dim_spot = 0.3f * light_clr;
-		glm::vec3 light0_pos(0.5, 0.5, -4), light_spot_pos(0.2, 0.4, 1.2);
-		shader_blinnphong.set_vec3("light[0].amb", 0.2f * dim_red);
-		shader_blinnphong.set_vec3("light[0].diff", 0.5f * dim_red);
-		shader_blinnphong.set_vec3("light[0].spec", dim_red);
-		shader_blinnphong.set_vec3("light[0].pos", light0_pos);
-		shader_blinnphong.set_vec3("light_para[0].amb", 0.1f * light_clr);
-		shader_blinnphong.set_vec3("light_para[0].diff", 0.3f * light_clr);
-		shader_blinnphong.set_vec3("light_para[0].spec", light_clr);
-		shader_blinnphong.set_vec3("light_para[0].dir", glm::vec3(-2, 1, 1));
-		shader_blinnphong.set_vec3("light_spot[0].amb", 0.2f * dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].diff", 0.5f * dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].spec", dim_spot);
-		shader_blinnphong.set_vec3("light_spot[0].dir", glm::vec3(0, 0, -1));
-		shader_blinnphong.set_vec3("light_spot[0].pos", light_spot_pos);
-		shader_blinnphong.set_float("light_spot[0].inner_theta", 0.98f);
-		shader_blinnphong.set_float("light_spot[0].outer_theta", 0.94f);
-
-
-		glActiveTexture(GL_TEXTURE0);
-		glBindTexture(GL_TEXTURE_2D, textureID);
-		glActiveTexture(GL_TEXTURE1);
-		glBindTexture(GL_TEXTURE_2D, texture_spec_ID);
-		// glActiveTexture(GL_TEXTURE2);
-		// glBindTexture(GL_TEXTURE_2D, texture_green_ID);
 
 		glBindVertexArray(VAO);
 
@@ -348,47 +269,30 @@ int main() {
 			cam.ProcessKeyboard(Camera_Movement::UP, delta_t);
 		else if (glfwGetKey(window, GLFW_KEY_Q) == GLFW_PRESS)
 			cam.ProcessKeyboard(Camera_Movement::DOWN, delta_t);
+
 		glm::mat4 v = cam.GetViewMatrix();
 		glm::mat4 p = glm::perspective(fov, window_width * 1.f / window_height, 0.1f, 100.f);
-
 		shader_blinnphong.set_mat4("p", p);
 		shader_blinnphong.set_mat4("v", v);
-
-		for (int i = 0; i < 10; i++)
-		{
-			glm::mat4 m(1.0);
-			m = glm::translate(m, obj_positions[i]);
-			float angle = 20.f * i;
-			m = glm::rotate(m, angle, glm::vec3(1.f, 0.3f, 0.5f));
-			shader_blinnphong.set_mat4("m", m);
-			glDrawArrays(GL_TRIANGLES, 0, 36);
-		}
-
-
-		shader_blinnphong_light.use();
-		shader_blinnphong_light.set_vec3("light_clr", dim_red);
 		glm::mat4 m(1.0);
-		m = glm::translate(m, light0_pos);
-		m = glm::scale(m, glm::vec3(0.2f));
-		shader_blinnphong_light.set_mat4("p", p);
-		shader_blinnphong_light.set_mat4("v", v);
-		shader_blinnphong_light.set_mat4("m", m);
-		glDrawArrays(GL_TRIANGLES, 0, 36);
-		shader_blinnphong_light.set_vec3("light_clr", dim_spot);
-		m = glm::mat4(1.0);
-		m = glm::translate(m, light_spot_pos);
-		m = glm::scale(m, glm::vec3(0.2f));
-		shader_blinnphong_light.set_mat4("m", m);
+		shader_blinnphong.set_mat4("m", m);
+		glm::mat4 vInv = glm::inverse(v);
+		glm::mat4 pInv = glm::inverse(p);
+
+		shader_blinnphong.set_mat4("vInv", vInv);
+		shader_blinnphong.set_mat4("pInv", pInv);
+		shader_blinnphong.set_float("gridGap", 10);
+
+
 		glDrawArrays(GL_TRIANGLES, 0, 36);
 
-		// Ë«»º³å£ºÒ»¸öÓÃÒÔ±£³ÖÏÔÊ¾£¬ÁíÒ»¸ö´¢´æµ±Ç°ÕýÔÚäÖÈ¾µÄÖµ
-		glfwSwapBuffers(window); // »æÖÆ»º³å
-		glfwPollEvents(); // ¼ì²éÓÐÃ»ÓÐÊÂ¼þ·¢Éú
-
+		// åŒç¼“å†²ï¼šä¸€ä¸ªç”¨ä»¥ä¿æŒæ˜¾ç¤ºï¼Œå¦ä¸€ä¸ªå‚¨å­˜å½“å‰æ­£åœ¨æ¸²æŸ“çš„å€¼
+		glfwSwapBuffers(window); // ç»˜åˆ¶ç¼“å†²
+		glfwPollEvents(); // æ£€æŸ¥æœ‰æ²¡æœ‰äº‹ä»¶å‘ç”Ÿ
 	}
 	glDeleteVertexArrays(1, &VAO);
 	glDeleteBuffers(1, &VBO);
-	glfwTerminate(); // ÊÍ·Å×ÊÔ´
+	glfwTerminate(); // é‡Šæ”¾èµ„æº
 
 	return 0;
 }

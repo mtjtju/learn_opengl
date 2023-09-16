@@ -1,4 +1,4 @@
-#pragma once
+ï»¿#pragma once
 
 #include "Shader.h"
 
@@ -37,7 +37,7 @@ Shader::Shader(const char* vertex_path, const char* fragment_path)
 	vshader_cstr = vshader_string.c_str();
 	fshader_cstr = fshader_string.c_str();
 
-	// Éú³Éprogram
+	// ç”Ÿæˆprogram
 	unsigned int vshader_id, fshader_id;
 	vshader_id = glCreateShader(GL_VERTEX_SHADER);
 	fshader_id = glCreateShader(GL_FRAGMENT_SHADER);
@@ -46,13 +46,13 @@ Shader::Shader(const char* vertex_path, const char* fragment_path)
 	glCompileShader(vshader_id);
 	glCompileShader(fshader_id);
 
-	// shader program obj ×ÅÉ«Æ÷³ÌĞò¶ÔÏó
+	// shader program obj ç€è‰²å™¨ç¨‹åºå¯¹è±¡
 	ID = glCreateProgram();
 	glAttachShader(ID, vshader_id);
 	glAttachShader(ID, fshader_id);
 	glLinkProgram(ID);
 
-	// ´¦Àí±àÒë´íÎó
+	// å¤„ç†ç¼–è¯‘é”™è¯¯
 	int success;
 	char infoLog[512];
 	glGetShaderiv(vshader_id, GL_COMPILE_STATUS, &success);
@@ -77,7 +77,7 @@ Shader::Shader(const char* vertex_path, const char* fragment_path)
 		cout << infoLog << endl;
 	}
 
-	// Á´½Óºó¾Í²»ĞèÒªÁË
+	// é“¾æ¥åå°±ä¸éœ€è¦äº†
 	glDeleteShader(vshader_id);
 	glDeleteShader(fshader_id);
 }
