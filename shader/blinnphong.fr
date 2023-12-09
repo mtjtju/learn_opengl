@@ -1,0 +1,48 @@
+#version 330 core
+
+uniform float gridGap;
+
+out vec4 frag_clr;
+in vec3 nearPoint;
+in vec3 farPoint;
+in mat4 matP;
+in mat4 matV;
+
+float computeDepth(vec3 pos) {
+    vec4 clip_space_pos = matP * matV * vec4(pos.xyz, 1.0);
+    return (clip_space_pos.z / clip_space_pos.w) * 0.5 + 0.5;
+}
+
+vec4 grid(vec3 fragPos3D, vec3 lineColor, float scale, float lineWidth) {
+	// scale越大网格越密
+    vec2 coord = fragPos3D.xz * scale; 
+	
+	// 视角越倾斜derivative越大 
+    vec2 derivative = fwidth(coord);
+	
+	// derivative越大grid值越小，函数min(line, 1)小于1的范围越大
+    vec2 grid = abs(fract(coord - 0.5) - 0.5) / (derivative * lineWidth);
+    float line = min(grid.x, grid.y);
+	vec4 color = vec4(lineColor.xyz, 1.0 - min(line, 1.0));
+    
+	float xval = abs(coord.x) / (min(derivative.x, 1) * lineWidth);
+	if (xval < 1.0) color.z = 1.0 * (1-min(xval, 1));
+	
+	float zval = abs(coord.y) / (min(derivative.y, 1) * lineWidth);
+	if (zval < 1.0) color.x = 1.0 * (1-min(zval, 1));
+		
+    return color;
+}
+ 
+void main () {
+	float t = -nearPoint.y / (farPoint.y - nearPoint.y);
+	vec3 fragPos3D = nearPoint + t * (farPoint - nearPoint);
+	float clipZ =  pow(computeDepth(fragPos3D), 150);
+	
+	float gridGapPos = gridGap <= 0 ? 1 : gridGap;
+	float mainGridScale = 1 / gridGapPos;
+	float subGridScale = mainGridScale * 5;
+	vec4 clr0 = grid(fragPos3D, vec3(0.2, 0.2, 0.2), 5, 1) * float(t > 0) * (1 - clipZ);
+	vec4 clr1 = grid(fragPos3D, vec3(0.4, 0.4, 0.4), 1, 1) * float(t > 0) * (1 - clipZ);
+	frag_clr = clr1.w > 0.0  ? clr1 : clr0;
+}
